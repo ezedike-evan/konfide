@@ -55,21 +55,21 @@ Goal: every package compiles, every workspace is wired, CI runs green on a fresh
 
 Goal: any judge or contributor can land on the repo cold and reach the right answer in under three minutes. This phase produced the docs you are reading now.
 
-- [~] `README.md` rewritten with hero, architecture diagram, sponsor matrix, quickstart
-- [~] `ROADMAP.md` (this document)
-- [~] `docs/ARCHITECTURE.md` with hexagonal explanation, data flow, privacy model
-- [~] `docs/INTEGRATIONS.md` with one full section per sponsor
-- [~] `docs/BUSINESS_MODEL.md` with market, wedge, unit economics, moat
-- [~] `docs/CONTRIBUTING.md` adapted to the hexagonal constraints
-- [~] `docs/SECURITY.md` with threat model and disclosure policy
-- [~] `docs/submissions/frontier-main.md` ready for Colosseum upload
-- [~] `docs/submissions/kirapay.md` tailored to KIRAPAY judging weights
-- [~] `docs/submissions/magicblock.md` tailored to MagicBlock judging weights
-- [~] `docs/submissions/covalent.md` tailored to GoldRush judging weights
-- [~] `docs/submissions/torque.md` tailored to Torque judging weights
-- [~] `apps/docs` Nextra site populated with the public version of every doc
-- [~] `.github/PULL_REQUEST_TEMPLATE.md`
-- [~] `.github/ISSUE_TEMPLATE/{bug_report,feature_request,sponsor_integration}.md`
+- [x] `README.md` rewritten with hero, architecture diagram, sponsor matrix, quickstart
+- [x] `ROADMAP.md` (this document)
+- [x] `docs/ARCHITECTURE.md` with hexagonal explanation, data flow, privacy model
+- [x] `docs/INTEGRATIONS.md` with one full section per sponsor
+- [x] `docs/BUSINESS_MODEL.md` with market, wedge, unit economics, moat
+- [x] `docs/CONTRIBUTING.md` adapted to the hexagonal constraints
+- [x] `docs/SECURITY.md` with threat model and disclosure policy
+- [x] `docs/submissions/frontier-main.md` ready for Colosseum upload
+- [x] `docs/submissions/kirapay.md` tailored to KIRAPAY judging weights
+- [x] `docs/submissions/magicblock.md` tailored to MagicBlock judging weights
+- [x] `docs/submissions/covalent.md` tailored to GoldRush judging weights
+- [x] `docs/submissions/torque.md` tailored to Torque judging weights
+- [x] `apps/docs` Nextra site populated with the public version of every doc
+- [x] `.github/PULL_REQUEST_TEMPLATE.md`
+- [x] `.github/ISSUE_TEMPLATE/{bug_report,feature_request,sponsor_integration}.md`
 
 Mark each `[x]` once the file lands on `main` with the `[TBD]` markers tracked in the Decision Log below.
 
