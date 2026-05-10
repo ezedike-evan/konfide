@@ -1,8 +1,3 @@
-/**
- * Marketing landing page for Konfide.
- *
- * Placeholder content — real copy and design land in the docs sprint.
- */
 import type { ReactElement } from 'react'
 
 export default function HomePage(): ReactElement {
