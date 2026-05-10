@@ -7,6 +7,7 @@ export async function generateMetadata(props: {
   params: Promise<{ mdxPath?: string[] }>
 }) {
   const params = await props.params
+  console.log("generateMetadata", params.mdxPath)
   const { metadata } = await importPage(params.mdxPath)
   return metadata
 }
@@ -17,6 +18,7 @@ export default async function Page(props: {
   params: Promise<{ mdxPath?: string[] }>
 }) {
   const params = await props.params
+  console.log("Page", params.mdxPath)
   const result = await importPage(params.mdxPath)
   const { default: MDXContent, toc, metadata, sourceCode } = result
   if (!Wrapper) {

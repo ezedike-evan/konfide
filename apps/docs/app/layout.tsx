@@ -1,11 +1,3 @@
-/**
- * Root layout for the Konfide docs site (Nextra 4 + App Router).
- *
- * The Nextra theme is wired here rather than via `next.config.ts`. The
- * `Layout` component owns the page chrome (sidebar, breadcrumbs, search);
- * the route at `app/[[...mdxPath]]/page.tsx` resolves and renders the
- * actual MDX content.
- */
 import { Footer, Layout, Navbar } from 'nextra-theme-docs'
 import { Head } from 'nextra/components'
 import { getPageMap } from 'nextra/page-map'
@@ -35,13 +27,20 @@ export default async function RootLayout({
 }: {
   children: ReactNode
 }): Promise<ReactElement> {
+  let pageMap = [];
+  try {
+    pageMap = await getPageMap();
+    console.log("pageMap loaded successfully!");
+  } catch (e) {
+    console.error("getPageMap error", e);
+  }
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <Head />
       <body>
         <Layout
           navbar={navbar}
-          pageMap={await getPageMap()}
+          pageMap={pageMap}
           docsRepositoryBase="https://github.com/konfide-protocol/konfide/tree/main/apps/docs"
           footer={footer}
         >
