@@ -24,5 +24,11 @@
     "@types/node": "^22.19.18",
     "turbo": "^2.9.12",
     "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.6",
+      "react-dom": "19.2.6"
+    }
   }
 }

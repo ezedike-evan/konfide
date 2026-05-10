@@ -1,0 +1,37 @@
+/**
+ * Catch-all MDX route for Nextra 4.
+ *
+ * Resolves the requested path to a file under `content/`, imports it, and
+ * renders it through the theme's MDX wrapper so callouts, headings, and
+ * other theme components work consistently.
+ */
+import { generateStaticParamsFor, importPage } from 'nextra/pages'
+import { useMDXComponents as getMDXComponents } from '../../mdx-components'
+
+export const generateStaticParams = generateStaticParamsFor('mdxPath')
+
+export async function generateMetadata(props: {
+  params: Promise<{ mdxPath?: string[] }>
+}) {
+  const params = await props.params
+  const { metadata } = await importPage(params.mdxPath)
+  return metadata
+}
+
+const Wrapper = getMDXComponents().wrapper
+
+export default async function Page(props: {
+  params: Promise<{ mdxPath?: string[] }>
+}) {
+  const params = await props.params
+  const result = await importPage(params.mdxPath)
+  const { default: MDXContent, toc, metadata, sourceCode } = result
+  if (!Wrapper) {
+    return <MDXContent params={params} />
+  }
+  return (
+    <Wrapper toc={toc} metadata={metadata} sourceCode={sourceCode}>
+      <MDXContent params={params} />
+    </Wrapper>
+  )
+}
