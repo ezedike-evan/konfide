@@ -1,0 +1,44 @@
+import { Callout } from 'nextra/components'
+
+# Contributing
+
+This page is the short version of the contribution guide. The canonical version is at [`docs/CONTRIBUTING.md`](https://github.com/konfide-protocol/konfide/blob/main/docs/CONTRIBUTING.md).
+
+## Before you open a PR
+
+Open an issue first for anything beyond a typo or a focused bug fix. The issue does not need to be long — a paragraph of context plus a sketch of the proposed approach is enough.
+
+For sponsor adapter changes, the issue must specify which `Port` interface the adapter implements. New ports are a domain-level decision and need a maintainer signoff.
+
+## Branch and commit conventions
+
+- Branch: `feature/...`, `fix/...`, `docs/...`, `chore/...`.
+- Commit: [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) — `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`. Scope (optional) is the package or app: `feat(adapter-kirapay): implement quote()`.
+
+## What every PR must do
+
+- Pass CI: `pnpm lint`, `pnpm typecheck`, `pnpm test`.
+- Update relevant docs (`ARCHITECTURE.md`, `INTEGRATIONS.md`, `ROADMAP.md`).
+- Include screenshots or a screen recording for any UI change.
+
+## The architectural rule
+
+<Callout type="warning">
+**`packages/core` does not import from any sponsor SDK, from `@solana/*`, from `node:*`, or from any I/O primitive.** Violating this rule is grounds for an immediate review block. The rule is what makes the rest of the architecture work.
+</Callout>
+
+If you find yourself wanting to add an SDK import to `packages/core`, the right move is almost always to add a method to an existing port and implement it in the corresponding adapter, define a new port (with a maintainer-approved issue), or move the I/O-shaped code to a service in `packages/core/src/services` that takes the port as a constructor dependency.
+
+## Local setup
+
+```bash
+git clone <repo-url> konfide
+cd konfide
+cp .env.example .env
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm dev
+```
+
+Node 22 (`nvm use`), pnpm 9+.

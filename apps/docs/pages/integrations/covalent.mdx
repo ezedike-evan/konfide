@@ -1,5 +1,51 @@
-# Covalent
+import { Callout } from 'nextra/components'
 
-Konfide uses Covalent's unified data API to pull cross-chain trade history that powers trust scores. Adapter: [`@konfide/adapter-covalent`](https://github.com/konfide-protocol/konfide/tree/main/packages/adapters/covalent).
+# Covalent GoldRush
 
-> Placeholder — full integration write-up lands in the docs sprint.
+Covalent's GoldRush API normalises cross-chain transaction history across many chains. Konfide uses GoldRush to power the counterparty trust score — features extracted from on-chain history compose into a `[0, 1000]` score mapped to one of five tiers.
+
+## Port
+
+`ChainData` — `packages/core/src/ports/chain-data.ts`.
+
+## Adapter
+
+`packages/adapters/covalent/`. Specifically `src/client.ts` and `src/covalent-adapter.ts`.
+
+## Features extracted
+
+| Feature                              | Source                       |
+| ------------------------------------ | ---------------------------- |
+| Wallet age in days                   | Wallet activity endpoint     |
+| Total inflow volume USD              | Transfers endpoint           |
+| Total outflow volume USD             | Transfers endpoint           |
+| Distinct counterparty count (12mo)   | Transfers endpoint           |
+| Recurring counterparty count         | Transfers endpoint, derived  |
+| Dispute event count                  | Konfide program logs         |
+| Settlement velocity                  | Konfide internal records     |
+| Latest activity recency in days      | Transfers endpoint           |
+
+## Tiers
+
+| Tier      | Score range |
+| --------- | ----------- |
+| platinum  | 900–1000    |
+| gold      | 750–899     |
+| silver    | 500–749     |
+| bronze    | 250–499     |
+| unrated   | 0–249       |
+
+## Why hard to fake
+
+Each feature requires a costly real-world action — aging a wallet costs months, diverse counterparty interactions cost gas plus time, avoiding disputes requires actually paying invoices. The expected cost of forging a `gold`-tier score over 12 months exceeds the expected fraud yield of any single trade Konfide expects to underwrite.
+
+## Edge cases
+
+- **Cold start** — wallets with no history score `unrated`. Explicitly labelled in the UI.
+- **Mixed activity** — DeFi-shaped counterparties (DEX routers, AMM pools) excluded from diversity counts.
+- **Rotated wallets** — score is wallet-scoped; rotation restarts at `unrated`.
+- **Cross-chain reconciliation** — multiple wallets per logical counterparty aggregated at the `Counterparty` record level.
+
+<Callout type="info">
+Covalent invites creative applications of GoldRush data. The Covalent submission lives at [`docs/submissions/covalent.md`](https://github.com/konfide-protocol/konfide/blob/main/docs/submissions/covalent.md).
+</Callout>

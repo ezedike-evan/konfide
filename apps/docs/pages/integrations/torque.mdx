@@ -1,5 +1,42 @@
+import { Callout } from 'nextra/components'
+
 # Torque
 
-Konfide uses Torque to drive counterparty retention — campaigns, tier perks, and post-settlement loyalty events. Adapter: [`@konfide/adapter-torque`](https://github.com/konfide-protocol/konfide/tree/main/packages/adapters/torque).
+Torque is a programmable retention engine. Konfide uses Torque to attribute repeat-counterparty rebates that escalate with relationship depth — turning protocol-level signals about repeat trade into commercial incentives that shape behaviour.
 
-> Placeholder — full integration write-up lands in the docs sprint.
+## Port
+
+`Loyalty` — `packages/core/src/ports/loyalty.ts`.
+
+## Adapter
+
+`packages/adapters/torque/`. Specifically `src/client.ts` and `src/torque-adapter.ts`.
+
+## Custom events
+
+- `invoice_created` — issuer creates a new invoice.
+- `invoice_settled` — settlement confirms.
+- `dispute_opened` — dispute recorded; reverses pending rebate accrual.
+- `dispute_resolved` — dispute closes; re-issues accrual if buyer-favoured.
+
+## Rebate logic
+
+| Trade number | Rebate (bps off settlement fee) |
+| ------------ | ------------------------------- |
+| 1st          | 0                               |
+| 2nd          | 30                              |
+| 3rd–4th      | 40                              |
+| 5th–9th      | 50                              |
+| 10th onward  | 75                              |
+
+`[TBD]` — actual numbers pending tuning against pilot user data.
+
+## Why this shape
+
+B2B retention is structurally different from consumer retention. Trades are high-value and intermittent, repeat-counterparty pairs are valuable but underincentivised. A programmable rebate that fires on repeat trade is the right way to make these relationships protocol-legible.
+
+The 75% discount on settlement fee for 10th-and-onward trades produces a near-zero settlement-fee experience for Konfide's most loyal pairs, which compounds with the FX-spread share to make sustained corridor use cheap enough that switching costs lock the relationship in.
+
+<Callout type="info">
+Torque scores live activity, not just code presence. Konfide ships a simulation script (`tooling/scripts/simulate-trade.ts`) that produces a 30-day activity graph judges can scrub through. Submission at [`docs/submissions/torque.md`](https://github.com/konfide-protocol/konfide/blob/main/docs/submissions/torque.md).
+</Callout>

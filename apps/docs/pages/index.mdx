@@ -1,16 +1,56 @@
+import { Cards, Callout } from 'nextra/components'
+
 # Konfide
 
-Konfide is a confidential B2B cross-border payment protocol built on Solana. Issuers send private invoices, payers settle in any chain or currency they prefer, and the protocol commits the result on-chain without leaking sensitive trade-finance data.
+Konfide is confidential B2B payment infrastructure for cross-border trade in emerging markets. A Lagos importer paying a Shenzhen supplier today waits five days through correspondent banking, pays 4–7% all-in, and exposes commercially sensitive pricing on public chains if they switch to USDT-on-Tron. Konfide settles the same trade in 90 seconds at ~80 bps blended cost, with amounts and counterparties private by default but selectively disclosable to regulators.
 
-## Why
+The wedge corridor is Lagos to Guangzhou, and the founder is in Lagos — which is the most defensible part of the moat.
 
-International B2B payments today are slow, expensive, and force counterparties to disclose more than they should. Konfide bundles cross-border rails (Kirapay), confidential settlement (Magicblock), cross-chain history (Covalent), retention primitives (Torque), and embedded wallets (Privy) into a single protocol that works for both sides of a trade.
+## Architecture at a glance
 
-## Read next
+```mermaid
+flowchart LR
+    Buyer["Buyer wallet<br/>any chain"]
+    Web["apps/web<br/>Next.js 16"]
+    API["apps/api<br/>Hono + Drizzle"]
+    Indexer["apps/indexer<br/>Node worker"]
 
-- [Architecture](/architecture)
-- [Integrations / Kirapay](/integrations/kirapay)
-- [Integrations / Magicblock](/integrations/magicblock)
-- [Integrations / Covalent](/integrations/covalent)
-- [Integrations / Torque](/integrations/torque)
-- [Integrations / Privy](/integrations/privy)
+    Kira["KIRAPAY<br/>cross-chain solver"]
+    Magic["MagicBlock<br/>Private Ephemeral Rollup"]
+    Cov["Covalent GoldRush<br/>cross-chain history"]
+    Torque["Torque<br/>retention engine"]
+    Privy["Privy<br/>auth + embedded wallets"]
+
+    Solana["Solana L1<br/>Konfide program"]
+    Postgres["Postgres<br/>operational state"]
+
+    Buyer -->|"intent"| Web
+    Web -->|"create / query"| API
+    Web -->|"auth"| Privy
+    API -->|"quote / session"| Kira
+    Kira -->|"USDC on Solana"| Solana
+    Solana -->|"PER session"| Magic
+    Magic -->|"commitment"| Solana
+    API -->|"events"| Torque
+    Indexer -->|"history"| Cov
+    Indexer -->|"score"| Postgres
+    API --> Postgres
+```
+
+## Start here
+
+<Cards>
+  <Cards.Card title="For judges" href="/submissions">
+    Hackathon submission docs, one per sidetrack, with judging-criteria alignment and demo links.
+  </Cards.Card>
+  <Cards.Card title="For developers" href="/architecture">
+    Architecture, ports + adapters, privacy model, trust scoring, deployment topology.
+  </Cards.Card>
+  <Cards.Card title="For investors" href="/business">
+    Market, wedge, unit economics, go-to-market, moat, the ask.
+  </Cards.Card>
+</Cards>
+
+<Callout type="info">
+This site is the public version of the project's documentation. The full repo, including the canonical `docs/` folder, is on [GitHub](https://github.com/konfide-protocol/konfide) `[TBD: real URL once repo is public]`.
+</Callout>

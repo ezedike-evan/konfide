@@ -1,0 +1,50 @@
+import { Callout } from 'nextra/components'
+
+# Security
+
+This page summarises Konfide's threat model and disclosure policy. The canonical version is at [`docs/SECURITY.md`](https://github.com/konfide-protocol/konfide/blob/main/docs/SECURITY.md).
+
+## Threat model
+
+Konfide takes the following threats seriously, in rough order of likelihood × impact:
+
+- **Cross-chain bridge risk.** Funds in flight are exposed to KIRAPAY's solver network risk profile.
+- **Smart contract vulnerabilities.** The Anchor program controls invoice state on Solana.
+- **Webhook spoofing.** All inbound webhooks are HMAC SHA-256 verified.
+- **Key compromise.** Sponsor API keys and Solana keypairs.
+- **MEV on settlement.** Reduced but not eliminated by Solana's leader scheduling.
+- **Regulatory data exposure.** Selective-disclosure view keys are scoped per-request, not per-regulator-blanket.
+- **Privacy regression.** Reviewers explicitly check for accidental cleartext writes to L1 on every PR touching contracts, the privacy adapter, or webhooks.
+
+## Protections in place
+
+- HMAC SHA-256 verification on every inbound webhook.
+- Zod-schema validation at every HTTP boundary.
+- Pure domain — no I/O in `packages/core`.
+- PDA-bounded program authority with Anchor's account-constraint enforcement.
+- No private keys in the repo.
+- No secrets in `.env.example`.
+- Minimal on-chain surface (three instructions, each under 30 lines).
+
+## Bug disclosure
+
+Email `[TBD: security@konfide.<tld>]`. PGP key `[TBD]`.
+
+We will:
+
+- Acknowledge receipt within 48 hours.
+- Triage and respond with severity within 5 business days.
+- Coordinate disclosure timing; default 90-day window.
+- Credit reporters in release notes unless they prefer anonymity.
+
+We will not pursue legal action against good-faith researchers.
+
+## Out of scope
+
+Vulnerabilities in third-party sponsor SDKs and upstream open-source dependencies — report those to the upstream project. We will help coordinate if the issue is jointly exploitable.
+
+## Hackathon-window limitations
+
+<Callout type="warning">
+The hackathon build is explicitly pre-audit and devnet-only. No mainnet deployment until audit completion and Phase 8 hardening completes. Maximum invoice size in the demo is capped at $50K.
+</Callout>

@@ -1,5 +1,48 @@
-# Magicblock
+import { Callout } from 'nextra/components'
 
-Konfide uses Magicblock ephemeral rollups to settle invoices without exposing sensitive trade data on the public ledger. Adapter: [`@konfide/adapter-magicblock`](https://github.com/konfide-protocol/konfide/tree/main/packages/adapters/magicblock).
+# MagicBlock
 
-> Placeholder — full integration write-up lands in the docs sprint.
+MagicBlock provides ephemeral rollups (ER) and private ephemeral rollups (PER) anchored to Solana. Konfide uses PER as the privacy substrate for confidential settlements — amounts and counterparty mappings live in the rollup, with only a commitment hash landing on Solana mainnet.
+
+## Port
+
+`PrivacyLayer` — `packages/core/src/ports/privacy-layer.ts`.
+
+## Adapter
+
+`packages/adapters/magicblock/`. Specifically `src/client.ts` and `src/magicblock-adapter.ts`.
+
+## Methods used
+
+- `openSession()` — open a PER session.
+- `commitSettlement(session, payload)` — write shielded payload.
+- `closeSession(session)` — finalise and emit commitment hash.
+
+## Setup
+
+```bash
+MAGICBLOCK_API_KEY=...
+MAGICBLOCK_RPC_URL=...
+```
+
+## Privacy model in three layers
+
+**Private.** Amount, line items, memo, buyer-seller mapping, FX rate. Encrypted at rest in Postgres; transient in cleartext only inside a PER session.
+
+**Public.** The fact-of-settlement on Solana mainnet — PDA address, status flag, 32-byte commitment hash. Observable but observably uninformative.
+
+**Selectively disclosable.** A regulator with appropriate process can request a view key for a specific scope; the view key decrypts the off-chain payload and verifies it against the on-chain commitment.
+
+<Callout type="warning">
+This is different from Tron USDT (everything public) and from fully shielded chains (no audit path). Konfide sits between: private by default, auditable by design.
+</Callout>
+
+## Edge cases
+
+- **Session expiry** — settlement service refreshes if a session ages out mid-flow.
+- **L1 commitment failure** — retried with exponential backoff; surfaced as `disputed` only after exhaustion.
+- **View-key issuance** — scoped per-request, never per-regulator-blanket.
+
+<Callout type="info">
+MagicBlock weights "Technology" at 40%. The MagicBlock submission lives at [`docs/submissions/magicblock.md`](https://github.com/konfide-protocol/konfide/blob/main/docs/submissions/magicblock.md).
+</Callout>

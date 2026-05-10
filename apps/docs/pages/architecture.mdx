@@ -1,3 +1,111 @@
+import { Callout, Steps } from 'nextra/components'
+
 # Architecture
 
-> Placeholder. Diagrams and a deep-dive on the hexagonal layout (`@konfide/core` ports + sponsor adapters) land in the docs sprint.
+Konfide is built on hexagonal (ports + adapters) architecture. The pure domain defines invoice, settlement, counterparty, and trust-score logic with zero external SDK dependencies. Each sponsor's SDK is wrapped in an adapter that implements one of five port interfaces. The Anchor program is deliberately minimal because on-chain logic is auditable per byte.
+
+This page is the public summary. The canonical version lives in [`docs/ARCHITECTURE.md`](https://github.com/konfide-protocol/konfide/blob/main/docs/ARCHITECTURE.md).
+
+## The hexagonal pattern
+
+There are three rules in this codebase, and they are non-negotiable.
+
+<Steps>
+### The domain is pure
+
+`packages/core` may import from `packages/types` and from itself. It must not import from `@solana/*`, from any sponsor SDK, from `node:*`, or from any I/O primitive.
+
+### Every external capability is a port
+
+Ports are interfaces in `packages/core/src/ports`. Examples: `PaymentRouter`, `PrivacyLayer`, `ChainData`, `Loyalty`, `Identity`. A port is named for the capability, not for the provider.
+
+### Every sponsor SDK is wrapped in an adapter
+
+Adapters live in `packages/adapters/<sponsor>` and depend on `@konfide/core` and the sponsor's SDK. Replacing one sponsor with another means writing a new adapter, not editing the domain.
+</Steps>
+
+<Callout type="info">
+The pattern earns its space for two reasons. First, sponsor SDKs change rapidly; keeping change radius contained limits blast radius. Second, a judge or auditor who wants to know "how deep is integration X" can read exactly one folder, `packages/adapters/<x>`, and reach a confident answer in minutes.
+</Callout>
+
+## System overview
+
+```mermaid
+flowchart LR
+    Buyer["Buyer wallet"]
+    Web["apps/web"]
+    API["apps/api"]
+    Indexer["apps/indexer"]
+
+    Kira["KIRAPAY"]
+    Magic["MagicBlock PER"]
+    Cov["Covalent"]
+    Torque["Torque"]
+    Privy["Privy"]
+
+    Solana["Solana L1"]
+    Postgres["Postgres"]
+
+    Buyer --> Web
+    Web --> API
+    Web --> Privy
+    API --> Kira
+    Kira --> Solana
+    Solana --> Magic
+    Magic --> Solana
+    API --> Torque
+    Indexer --> Cov
+    Indexer --> Postgres
+    API --> Postgres
+```
+
+## Privacy model
+
+Konfide's privacy framing has three layers, not two. Most "privacy on-chain" work conflates the last two.
+
+**Private.** Amounts, line items, memos, buyer-seller mappings, FX rates. Encrypted at rest in Postgres; transient in cleartext only inside a MagicBlock Private Ephemeral Rollup session.
+
+**Public.** The fact that an invoice exists. The fact that it has been settled. The settlement commitment hash. The PDA address. Observable on Solana mainnet but observably uninformative.
+
+**Selectively disclosable.** View keys. A regulator with appropriate process can request a view key for a specific scope. The view key decrypts the off-chain payload and verifies it against the on-chain commitment.
+
+<Callout type="warning">
+This is different from the Tron USDT model (everything public) and from a fully shielded model (no audit path). Konfide sits between: private by default, auditable by design.
+</Callout>
+
+## End-to-end settlement
+
+```mermaid
+sequenceDiagram
+    participant Buyer
+    participant Web
+    participant API
+    participant Kira as KIRAPAY
+    participant Solver as Cross-chain solver
+    participant Program as Konfide program
+    participant PER as MagicBlock PER
+    participant Seller
+
+    Buyer->>Web: open /pay/{invoiceId}
+    Web->>API: GET /invoices/{id}
+    API-->>Web: invoice + payable amount
+    Buyer->>Web: select route, click Pay
+    Web->>API: POST /invoices/{id}/sessions
+    API->>Kira: createSession
+    Kira-->>API: hosted-checkout URL
+    Web->>Buyer: redirect
+    Buyer->>Kira: sign + send funds
+    Kira->>Solver: route intent
+    Solver->>Program: settle_invoice CPI
+    Program->>PER: open shielded session
+    PER-->>Program: commitment hash
+    Kira->>API: webhook payment.confirmed
+    API->>Seller: notify
+```
+
+## Read more
+
+- [Integrations](/integrations) — one section per sponsor.
+- [Business model](/business) — market, wedge, unit economics, moat.
+- [Submissions](/submissions) — hackathon submission docs.
+- Full architectural detail: [`docs/ARCHITECTURE.md`](https://github.com/konfide-protocol/konfide/blob/main/docs/ARCHITECTURE.md).

@@ -1,5 +1,9 @@
 {
-  "index": "Konfide",
+  "index": "Introduction",
   "architecture": "Architecture",
-  "integrations": "Integrations"
+  "integrations": "Integrations",
+  "business": "Business model",
+  "submissions": "Submissions",
+  "contributing": "Contributing",
+  "security": "Security"
 }

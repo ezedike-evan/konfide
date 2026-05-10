@@ -1,5 +1,40 @@
+import { Callout } from 'nextra/components'
+
 # Privy
 
-Konfide uses Privy for issuer/payer auth and embedded wallets. Adapter: [`@konfide/adapter-privy`](https://github.com/konfide-protocol/konfide/tree/main/packages/adapters/privy).
+Privy is an auth and embedded-wallet provider. Konfide uses Privy for email-based onboarding so a Lagos importer can sign up and pay an invoice without learning the words "seed phrase." The user can later export their key for self-custody if they want.
 
-> Placeholder — full integration write-up lands in the docs sprint.
+## Port
+
+`Identity` — `packages/core/src/ports/identity.ts`.
+
+## Adapter
+
+`packages/adapters/privy/`. Specifically `src/client.ts` (server-side verification) and `src/privy-adapter.ts`. Client-side React provider in `apps/web/components/privy-provider.tsx`.
+
+## Methods used
+
+- `verifyToken(token)` — server-side verification of a Privy session JWT.
+- `ensureWallet(userId, chainId)` — provision a wallet on a given chain if none exists.
+- `<PrivyProvider>` from `@privy-io/react-auth` — client-side React provider.
+
+## Setup
+
+```bash
+PRIVY_APP_ID=...
+PRIVY_APP_SECRET=...
+```
+
+## Where it shows up
+
+Sign-in and sign-up on `apps/web`, gating the `/invoices` and `/counterparties` routes. The public `/pay/[invoiceId]` page is intentionally auth-free — the payer experience is frictionless.
+
+## Edge cases
+
+- **Email-only sign-up** — Solana embedded wallet provisioned at first sign-in.
+- **User exports key** — exported address remains the `primary_wallet`; self-custody from that point.
+- **Session expiry** — API returns 401, web app prompts re-auth without losing the user's invoice draft.
+
+<Callout type="info">
+Privy's Frontier sidetrack participation `[verify]`. Either way, Privy is referenced in the Frontier main submission as the onboarding rail that makes Konfide accessible to emerging-market users.
+</Callout>

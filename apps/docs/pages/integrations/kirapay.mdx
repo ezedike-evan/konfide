@@ -1,5 +1,45 @@
-# Kirapay
+import { Callout } from 'nextra/components'
 
-Konfide uses Kirapay as its cross-border payment rail. Adapter: [`@konfide/adapter-kirapay`](https://github.com/konfide-protocol/konfide/tree/main/packages/adapters/kirapay).
+# KIRAPAY
 
-> Placeholder — full integration write-up lands in the docs sprint.
+KIRAPAY operates an intent-based cross-chain payment network. Konfide uses KIRAPAY as the spine of payer-side checkout — a buyer in Lagos paying with USDT on Polygon and a buyer in Dubai paying with USDC on Base reach the same Konfide invoice through KIRAPAY's intent layer, and the seller is paid in USDC on Solana regardless of source.
+
+## Port
+
+`PaymentRouter` — `packages/core/src/ports/payment-router.ts`.
+
+## Adapter
+
+`packages/adapters/kirapay/`. Specifically `src/client.ts` and `src/kirapay-adapter.ts`.
+
+## Methods used
+
+- `quote(invoice, fromChain)` — solver-network quotes per source chain.
+- `createSession(invoice, route)` — hosted-checkout session.
+- `resolveSession(sessionId)` — backstop poll for missed webhooks.
+- HMAC SHA-256 webhook verification on `payment.confirmed`, `payment.failed`, `payment.partial`.
+
+## Setup
+
+```bash
+KIRAPAY_API_KEY=...
+KIRAPAY_WEBHOOK_SECRET=...
+```
+
+Provision via the KIRAPAY dashboard; webhook URL is `https://<api-host>/webhooks/kirapay`.
+
+## Where it shows up
+
+The public payer page at `/pay/[invoiceId]`. The buyer clicks a CTA, KIRAPAY's hosted checkout opens, the page polls until settlement confirms.
+
+## Edge cases
+
+- **Wallet detection** — chain auto-detected from connected wallet.
+- **Payment timeout retries** — backoff at 5s, 15s, 60s.
+- **Partial settlements** — `payment.partial` maps to `partially_paid` invoice status.
+- **Multi-token routing fallbacks** — preferred token unavailable → fall back to USDC.
+- **Webhook replay** — idempotency keyed on `(sessionId, eventType, eventTimestamp)`.
+
+<Callout type="info">
+KIRAPAY weights "Depth of Integration" at 40%. The KIRAPAY submission lives at [`docs/submissions/kirapay.md`](https://github.com/konfide-protocol/konfide/blob/main/docs/submissions/kirapay.md).
+</Callout>

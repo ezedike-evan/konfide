@@ -1,0 +1,35 @@
+import { Cards } from 'nextra/components'
+
+# Integrations
+
+Konfide integrates five sponsor SDKs from the Solana Frontier Hackathon, each behind a port interface defined in `packages/core/src/ports`. This page is the index. Each card links to a page with the full integration write-up — what the sponsor does, how Konfide uses them, file paths, edge cases, and demo notes.
+
+For the canonical text, see [`docs/INTEGRATIONS.md`](https://github.com/konfide-protocol/konfide/blob/main/docs/INTEGRATIONS.md).
+
+<Cards>
+  <Cards.Card title="KIRAPAY" href="/integrations/kirapay">
+    Cross-chain checkout, the spine of payer settlement. Buyer pays from any chain; seller receives USDC on Solana.
+  </Cards.Card>
+  <Cards.Card title="MagicBlock" href="/integrations/magicblock">
+    Private Ephemeral Rollup for confidential settlement. Amounts and counterparties live in the rollup; only commitments touch L1.
+  </Cards.Card>
+  <Cards.Card title="Covalent" href="/integrations/covalent">
+    Cross-chain transaction history powering the Konfide trust score. Eight features extracted from GoldRush data.
+  </Cards.Card>
+  <Cards.Card title="Torque" href="/integrations/torque">
+    Programmable rebates for repeat counterparty pairs. Custom events fired on every settled invoice.
+  </Cards.Card>
+  <Cards.Card title="Privy" href="/integrations/privy">
+    Email-based onboarding with embedded Solana wallets. The bridge between an emerging-market user and the protocol.
+  </Cards.Card>
+</Cards>
+
+## Port–adapter mapping
+
+| Port             | Implemented by      | Adapter package                          |
+| ---------------- | ------------------- | ---------------------------------------- |
+| `PaymentRouter`  | KIRAPAY             | `@konfide/adapter-kirapay`               |
+| `PrivacyLayer`   | MagicBlock          | `@konfide/adapter-magicblock`            |
+| `ChainData`      | Covalent GoldRush   | `@konfide/adapter-covalent`              |
+| `Loyalty`        | Torque              | `@konfide/adapter-torque`                |
+| `Identity`       | Privy               | `@konfide/adapter-privy`                 |
