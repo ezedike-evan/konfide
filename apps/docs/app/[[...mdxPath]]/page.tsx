@@ -1,10 +1,3 @@
-/**
- * Catch-all MDX route for Nextra 4.
- *
- * Resolves the requested path to a file under `content/`, imports it, and
- * renders it through the theme's MDX wrapper so callouts, headings, and
- * other theme components work consistently.
- */
 import { generateStaticParamsFor, importPage } from 'nextra/pages'
 import { useMDXComponents as getMDXComponents } from '../../mdx-components'
 

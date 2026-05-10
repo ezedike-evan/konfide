@@ -3,7 +3,7 @@
   "extends": "@konfide/config-tsconfig/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "incremental": true
   },
   "include": [
