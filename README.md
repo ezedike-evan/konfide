@@ -186,7 +186,3 @@ Konfide is submitted to the Solana Frontier Hackathon (Colosseum, May 2026) main
 ## License
 
 MIT — see [LICENSE](./LICENSE).
-
-## Team
-
-`[TBD: members and one-line credentials each — populated before Frontier main submission on 2026-05-12]`.
