@@ -1,0 +1,41 @@
+{
+  "name": "@konfide/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/server.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc -b --watch",
+    "start": "node dist/server.js",
+    "lint": "biome check src",
+    "typecheck": "tsc -b --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@konfide/adapter-covalent": "workspace:*",
+    "@konfide/adapter-kirapay": "workspace:*",
+    "@konfide/adapter-magicblock": "workspace:*",
+    "@konfide/adapter-privy": "workspace:*",
+    "@konfide/adapter-solana": "workspace:*",
+    "@konfide/adapter-torque": "workspace:*",
+    "@konfide/core": "workspace:*",
+    "@konfide/types": "workspace:*",
+    "@hono/node-server": "^1.13.0",
+    "drizzle-orm": "^0.36.0",
+    "hono": "^4.6.0",
+    "postgres": "^3.4.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@konfide/config-tsconfig": "workspace:*",
+    "@biomejs/biome": "^1.9.0",
+    "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.28.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "@konfide/config-tsconfig/nextjs.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "incremental": true
+  },
+  "include": [
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mdx"
+  ],
+  "exclude": ["node_modules", ".next"]
+}

@@ -1,0 +1,22 @@
+{
+  "extends": "@konfide/config-tsconfig/library.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*", "drizzle.config.ts"],
+  "exclude": ["dist", "node_modules"],
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/types" },
+    { "path": "../../packages/adapters/kirapay" },
+    { "path": "../../packages/adapters/magicblock" },
+    { "path": "../../packages/adapters/covalent" },
+    { "path": "../../packages/adapters/torque" },
+    { "path": "../../packages/adapters/privy" },
+    { "path": "../../packages/adapters/solana" }
+  ]
+}

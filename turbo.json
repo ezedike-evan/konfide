@@ -1,0 +1,43 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "globalDependencies": ["**/.env.*local", ".env"],
+  "globalEnv": [
+    "NODE_ENV",
+    "KIRAPAY_API_KEY",
+    "KIRAPAY_WEBHOOK_SECRET",
+    "MAGICBLOCK_API_KEY",
+    "MAGICBLOCK_RPC_URL",
+    "COVALENT_API_KEY",
+    "TORQUE_API_KEY",
+    "PRIVY_APP_ID",
+    "PRIVY_APP_SECRET",
+    "SOLANA_RPC_URL",
+    "SOLANA_PAYER_KEYPAIR_PATH",
+    "DATABASE_URL"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

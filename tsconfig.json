@@ -1,0 +1,18 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/types" },
+    { "path": "./packages/core" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/adapters/kirapay" },
+    { "path": "./packages/adapters/magicblock" },
+    { "path": "./packages/adapters/covalent" },
+    { "path": "./packages/adapters/torque" },
+    { "path": "./packages/adapters/privy" },
+    { "path": "./packages/adapters/solana" },
+    { "path": "./apps/web" },
+    { "path": "./apps/api" },
+    { "path": "./apps/indexer" },
+    { "path": "./apps/docs" }
+  ]
+}

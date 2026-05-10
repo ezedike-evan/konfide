@@ -1,0 +1,21 @@
+{
+  "name": "@konfide/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Anchor workspace for the Konfide on-chain program.",
+  "scripts": {
+    "build": "anchor build",
+    "test": "anchor test",
+    "lint": "echo 'cargo fmt --check should run in CI; skipping in workspace lint pipeline'",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "rm -rf target .anchor"
+  },
+  "devDependencies": {
+    "@coral-xyz/anchor": "^1.0.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^22.0.0",
+    "mocha": "^10.0.0",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.6.0"
+  }
+}

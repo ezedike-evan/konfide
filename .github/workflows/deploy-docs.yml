@@ -1,0 +1,46 @@
+name: deploy-docs
+
+# TODO: enable once VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID secrets exist.
+
+on:
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'apps/docs/**'
+
+jobs:
+  deploy:
+    name: vercel deploy (docs)
+    runs-on: ubuntu-latest
+    if: false # remove to enable
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Pull Vercel env
+        run: pnpm dlx vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        working-directory: apps/docs
+
+      - name: Build & deploy
+        run: pnpm dlx vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        working-directory: apps/docs
