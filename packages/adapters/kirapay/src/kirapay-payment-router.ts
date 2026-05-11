@@ -18,6 +18,7 @@
  */
 import { SettlementStatus } from '@konfide/core'
 import type {
+  CreateSessionOptions,
   PaymentRouteQuote,
   PaymentRouter,
   PaymentSession,
@@ -50,8 +51,14 @@ export interface KirapaySettlementConfig {
   readonly tokenAddress?: string
   /** Settlement-token symbol surfaced to the UI. Defaults to `"SOL"`. */
   readonly tokenSymbol?: string
-  /** Solana base58 pubkey that should receive settled funds. */
-  readonly receiverAddress: string
+  /**
+   * Solana base58 pubkey that should receive settled funds. Optional now
+   * that Konfide's composition root passes a per-invoice receiver derived
+   * from the issuer counterparty's `primaryWallet`. Kept on the config for
+   * backwards-compat (tests, standalone usage) and as a final fallback if
+   * the service layer does not supply one.
+   */
+  readonly receiverAddress?: string
   /** Default fiat currency for new invoices. Defaults to `"USD"`. */
   readonly fiatCurrency?: string
   /** Public base URL used to build the KIRAPAY `redirectUrl`. */
@@ -74,7 +81,9 @@ export function createKirapayPaymentRouter(
   if (config.baseUrl !== undefined) Object.assign(clientConfig, { baseUrl: config.baseUrl })
   if (config.fetchImpl !== undefined) Object.assign(clientConfig, { fetchImpl: config.fetchImpl })
 
-  const settlement: KirapaySettlementConfig = { receiverAddress: config.receiverAddress }
+  const settlement: KirapaySettlementConfig = {}
+  if (config.receiverAddress !== undefined)
+    Object.assign(settlement, { receiverAddress: config.receiverAddress })
   if (config.chainId !== undefined) Object.assign(settlement, { chainId: config.chainId })
   if (config.tokenAddress !== undefined)
     Object.assign(settlement, { tokenAddress: config.tokenAddress })
@@ -150,17 +159,39 @@ export class KirapayPaymentRouter implements PaymentRouter {
    * webhooks and `resolveSession`. `PaymentSession.checkoutUrl` is what the
    * payer page redirects to.
    *
+   * The settlement receiver is resolved in this order:
+   *   1. `options.settlementReceiver` — the per-invoice override the service
+   *      layer derives from the issuer counterparty's `primaryWallet`. This
+   *      is the non-custodial path and the one Konfide takes in production.
+   *   2. `this.settlement.receiverAddress` — adapter-level fallback, kept
+   *      for backwards-compat with standalone usage and the existing tests.
+   *
+   * Throws if neither is set — Konfide must never silently send funds to a
+   * default treasury the issuer didn't choose.
+   *
    * @param invoice - The invoice the payer is settling.
    * @param route - Quote route id; ignored, retained for port compatibility.
+   * @param options - Per-invoice overrides; `settlementReceiver` is honored.
    * @returns The hosted-checkout session augmented with fiat/crypto fields.
    */
-  async createSession(invoice: Invoice, route: string): Promise<PaymentSession> {
+  async createSession(
+    invoice: Invoice,
+    route: string,
+    options?: CreateSessionOptions,
+  ): Promise<PaymentSession> {
     void route
     const chainId = this.settlement.chainId ?? DEFAULT_SETTLEMENT_CHAIN_ID
     const tokenAddress = this.settlement.tokenAddress ?? DEFAULT_SETTLEMENT_TOKEN_ADDRESS
     const tokenSymbol = this.settlement.tokenSymbol ?? DEFAULT_SETTLEMENT_CURRENCY
     const fiatCurrency =
       this.settlement.fiatCurrency ?? invoice.total.currency ?? 'USD'
+
+    const receiver = options?.settlementReceiver ?? this.settlement.receiverAddress
+    if (!receiver) {
+      throw new Error(
+        'KirapayPaymentRouter.createSession: no settlement receiver supplied (neither options.settlementReceiver nor adapter-level receiverAddress is set)',
+      )
+    }
 
     const redirectUrl = this.settlement.appBaseUrl
       ? `${this.settlement.appBaseUrl}/pay/${invoice.id}/return`
@@ -170,7 +201,7 @@ export class KirapayPaymentRouter implements PaymentRouter {
 
     const response = await this.client.generatePaymentLink({
       tokenOut: { chainId, address: tokenAddress },
-      receiver: this.settlement.receiverAddress,
+      receiver,
       originalPrice: fiatAmountNumber,
       fiatCurrency,
       name: `Konfide invoice ${invoice.id}`,
