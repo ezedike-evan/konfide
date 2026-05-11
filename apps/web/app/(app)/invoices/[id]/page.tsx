@@ -1,9 +1,14 @@
 /**
  * Issuer dashboard: invoice detail page.
  *
- * Placeholder route — surface invoice + settlements once API endpoints exist.
+ * Server component fetches the initial state; the embedded client component
+ * polls every 5 seconds while the invoice is still `awaiting_payment` so the
+ * seller sees the status flip the moment the webhook fires.
  */
 import type { ReactElement } from 'react'
+import { notFound } from 'next/navigation'
+import { getInvoice } from '../../../../lib/api'
+import { InvoiceDetailClient } from '../../../../components/invoice-detail-client'
 
 export default async function InvoiceDetailPage({
   params,
@@ -11,9 +16,10 @@ export default async function InvoiceDetailPage({
   params: Promise<{ id: string }>
 }): Promise<ReactElement> {
   const { id } = await params
+  const initial = await getInvoice(id, { cache: 'no-store' }).catch(() => notFound())
   return (
-    <section className="px-6 py-12">
-      <h1 className="text-2xl font-semibold">Invoice {id}</h1>
+    <section className="mx-auto max-w-2xl px-6 py-12">
+      <InvoiceDetailClient initial={initial} />
     </section>
   )
 }

@@ -21,3 +21,21 @@ pub struct Invoice {
     /// Optional settlement signature hash, zeroed when unsettled.
     pub settlement_hash: [u8; 32],
 }
+
+/// On-chain settlement record. PDA-keyed by the invoice id so the program
+/// can be queried for "has this invoice been settled" without an indexer.
+#[account]
+#[derive(InitSpace)]
+pub struct Settlement {
+    /// 16-byte invoice id, mirrored from the off-chain UUID.
+    pub invoice_id: [u8; 16],
+    /// Settled amount in token minor units (atomic).
+    pub amount_atomic: u64,
+    /// Wallet that ultimately received the funds.
+    pub recipient: Pubkey,
+    /// Unix timestamp at which `settle_invoice` ran.
+    pub timestamp: i64,
+    /// Idempotency flag — the second `settle_invoice` for the same invoice
+    /// errors with `AlreadySettled` instead of overwriting.
+    pub recorded: bool,
+}

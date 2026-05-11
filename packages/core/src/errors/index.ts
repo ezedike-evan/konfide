@@ -36,3 +36,10 @@ export class CounterpartyNotFoundError extends KonfideError {
     this.name = 'CounterpartyNotFoundError'
   }
 }
+
+export class InvoiceNotFoundError extends KonfideError {
+  constructor(id: string) {
+    super('INVOICE_NOT_FOUND', `No invoice with id ${id}`)
+    this.name = 'InvoiceNotFoundError'
+  }
+}

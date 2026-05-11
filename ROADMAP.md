@@ -81,19 +81,19 @@ Goal: a payer on any chain can settle an invoice, with funds landing as USDC on 
 
 Target: end-to-end devnet flow recorded by 2026-05-12 (for the Frontier main submission), polished demo by 2026-05-20 (for the KIRAPAY sidetrack).
 
-- [ ] Reviewed KIRAPAY public docs and intent-spec (link in `docs/INTEGRATIONS.md`)
+- [~] Reviewed KIRAPAY public docs and intent-spec (BLOCKED — `KIRAPAY_DOCS_DUMP.md` not yet in repo; placeholder API shape in `packages/adapters/kirapay/src/schemas.ts` will reconcile when spec arrives)
 - [ ] `KIRAPAY_API_KEY` provisioned for devnet
 - [ ] `KIRAPAY_WEBHOOK_SECRET` provisioned and stored in 1Password vault
-- [ ] `KirapayClient` HTTP wrapper implemented in `packages/adapters/kirapay/src/client.ts`
-- [ ] `KirapayPaymentRouter.quote()` implemented
-- [ ] `KirapayPaymentRouter.createSession()` implemented
-- [ ] `KirapayPaymentRouter.resolveSession()` implemented
-- [ ] Webhook signature verification implemented (HMAC SHA-256)
-- [ ] `POST /webhooks/kirapay` route handles `payment.confirmed`, `payment.failed`, `payment.partial`
-- [ ] Invoice creation endpoint `POST /invoices` returns a payable URL
-- [ ] Public payer page at `/pay/[invoiceId]` renders the KIRAPAY hosted checkout
-- [ ] Settlement record persisted to `settlements` table on confirmed webhook
-- [ ] On-chain `settle_invoice` instruction submitted on confirmed webhook
+- [x] `KirapayClient` HTTP wrapper implemented in `packages/adapters/kirapay/src/client.ts`
+- [x] `KirapayPaymentRouter.quote()` implemented
+- [x] `KirapayPaymentRouter.createSession()` implemented
+- [x] `KirapayPaymentRouter.resolveSession()` implemented
+- [x] Webhook signature verification implemented (HMAC SHA-256)
+- [x] `POST /webhooks/kirapay` route handles `payment.confirmed`, `payment.failed`, `payment.partial`
+- [x] Invoice creation endpoint `POST /invoices` returns a payable URL
+- [x] Public payer page at `/pay/[invoiceId]` renders the KIRAPAY hosted checkout
+- [x] Settlement record persisted to `settlements` table on confirmed webhook
+- [~] On-chain `settle_invoice` instruction submitted on confirmed webhook (Anchor program written; TS submitter currently stubs the signature pending IDL generation + devnet deploy)
 - [ ] End-to-end devnet test from Polygon USDC → Solana USDC settlement
 - [ ] Demo recording (3 min, screen capture + voiceover, Lagos-Guangzhou narrative)
 

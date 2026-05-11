@@ -1,8 +1,9 @@
 //! Program-level error codes.
-//!
-//! Empty for now; populated as instruction bodies are filled in.
 
 use anchor_lang::prelude::*;
 
 #[error_code]
-pub enum KonfideError {}
+pub enum KonfideError {
+    #[msg("settlement for this invoice has already been recorded")]
+    AlreadySettled,
+}

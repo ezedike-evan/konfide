@@ -6,16 +6,19 @@
   "main": "./dist/server.js",
   "scripts": {
     "build": "tsc -b",
-    "dev": "tsc -b --watch",
+    "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "lint": "biome check src",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run --passWithNoTests",
     "clean": "rm -rf dist .turbo *.tsbuildinfo",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@hono/node-server": "^2.0.2",
     "@konfide/adapter-covalent": "workspace:*",
     "@konfide/adapter-kirapay": "workspace:*",
     "@konfide/adapter-magicblock": "workspace:*",
@@ -24,17 +27,18 @@
     "@konfide/adapter-torque": "workspace:*",
     "@konfide/core": "workspace:*",
     "@konfide/types": "workspace:*",
-    "@hono/node-server": "^2.0.2",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.18",
     "postgres": "^3.4.9",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@konfide/config-tsconfig": "workspace:*",
     "@biomejs/biome": "^2.4.15",
+    "@konfide/config-tsconfig": "workspace:*",
     "@types/node": "^22.19.18",
+    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
   }

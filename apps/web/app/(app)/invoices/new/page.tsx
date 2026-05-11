@@ -1,120 +1,113 @@
-/**
- * Issuer dashboard: new invoice form.
- *
- * Reader: the seller. Submits the form, the API opens a KIRAPAY checkout
- * session, and we redirect to the seller's view of the invoice. The form is
- * deliberately minimal — amount, recipient handle, optional description,
- * expiry — so the demo path stays under one screen.
- */
 'use client'
-
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { ApiError, createInvoice } from '../../../../lib/api'
 
-export default function NewInvoicePage(): React.ReactElement {
+export default function NewInvoicePage() {
   const router = useRouter()
   const [amount, setAmount] = useState('10')
-  const [recipientHandle, setRecipientHandle] = useState('wei-supplier')
-  const [description, setDescription] = useState('Container 40HQ — pilot run')
-  const [expiresInMinutes, setExpiresInMinutes] = useState(60)
-  const [submitting, setSubmitting] = useState(false)
+  const [recipient, setRecipient] = useState('wei-supplier')
+  const [description, setDescription] = useState('')
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function onSubmit(e: React.FormEvent): Promise<void> {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    setLoading(true)
     setError(null)
-    setSubmitting(true)
     try {
-      const parsedAmount = Number.parseFloat(amount)
-      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-        throw new Error('amount must be a positive number')
-      }
-      const result = await createInvoice({
-        amount: parsedAmount,
-        currency: 'USD',
-        recipientHandle: recipientHandle.trim(),
-        description: description.trim() || undefined,
-        expiresInMinutes,
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/invoices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: Number(amount),
+          currency: 'USD',
+          recipientHandle: recipient,
+          description: description || undefined,
+        }),
       })
-      router.push(`/invoices/${result.publicId}`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.message ?? `request failed (${res.status})`)
+      }
+      const data = await res.json()
+      router.push(`/invoices/${data.publicId}`)
     } catch (err) {
-      const message =
-        err instanceof ApiError ? `${err.status}: ${err.message}` : err instanceof Error ? err.message : String(err)
-      setError(message)
-      setSubmitting(false)
+      setError(err instanceof Error ? err.message : 'something went wrong')
+      setLoading(false)
     }
   }
 
   return (
-    <section className="mx-auto max-w-xl px-6 py-12">
-      <h1 className="text-2xl font-semibold">New invoice</h1>
-      <p className="mt-1 text-sm text-neutral-500">
-        Send this to a buyer; they pay in any chain, you receive USDC on Solana.
-      </p>
+    <main className="min-h-screen bg-black text-white">
+      <div className="mx-auto max-w-xl px-8 py-20">
+        <p className="text-xs font-medium tracking-widest text-white/40 uppercase">
+          New invoice
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+          Issue a payment request
+        </h1>
+        <p className="mt-3 text-sm text-white/60">
+          Set the fiat amount you want to receive. We&apos;ll generate a hosted checkout
+          link your buyer can pay from any supported chain.
+        </p>
 
-      <form onSubmit={onSubmit} className="mt-8 flex flex-col gap-5">
-        <label className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Amount (USDC)</span>
-          <input
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            type="number"
-            step="0.01"
-            min="0"
-            required
-            className="rounded-md border border-neutral-300 px-3 py-2 text-base"
-          />
-        </label>
+        <form onSubmit={handleSubmit} className="mt-12 space-y-6">
+          <div>
+            <label className="block text-xs font-medium tracking-widest text-white/40 uppercase">
+              Amount (USD)
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="mt-2 w-full rounded-md border border-white/20 bg-transparent px-4 py-3 text-white placeholder-white/30 focus:border-white focus:outline-none"
+              required
+            />
+          </div>
 
-        <label className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Recipient handle</span>
-          <input
-            value={recipientHandle}
-            onChange={(e) => setRecipientHandle(e.target.value)}
-            type="text"
-            required
-            minLength={2}
-            maxLength={64}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-base"
-          />
-        </label>
+          <div>
+            <label className="block text-xs font-medium tracking-widest text-white/40 uppercase">
+              Recipient handle
+            </label>
+            <input
+              type="text"
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              className="mt-2 w-full rounded-md border border-white/20 bg-transparent px-4 py-3 text-white placeholder-white/30 focus:border-white focus:outline-none"
+              required
+            />
+          </div>
 
-        <label className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Description</span>
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            type="text"
-            maxLength={1000}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-base"
-          />
-        </label>
+          <div>
+            <label className="block text-xs font-medium tracking-widest text-white/40 uppercase">
+              Description (optional)
+            </label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Phone case batch — Container 40HQ"
+              className="mt-2 w-full rounded-md border border-white/20 bg-transparent px-4 py-3 text-white placeholder-white/30 focus:border-white focus:outline-none"
+            />
+          </div>
 
-        <label className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Expires in (minutes)</span>
-          <input
-            value={expiresInMinutes}
-            onChange={(e) => setExpiresInMinutes(Number.parseInt(e.target.value, 10) || 60)}
-            type="number"
-            min="5"
-            max={60 * 24 * 7}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-base"
-          />
-        </label>
+          {error && (
+            <p className="text-sm text-white/80 border border-white/20 rounded-md px-4 py-3">
+              {error}
+            </p>
+          )}
 
-        {error ? (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-        ) : null}
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {submitting ? 'Creating…' : 'Create invoice'}
-        </button>
-      </form>
-    </section>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-md bg-white px-6 py-3 text-sm font-medium text-black transition hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Creating…' : 'Create invoice'}
+          </button>
+        </form>
+      </div>
+    </main>
   )
 }
