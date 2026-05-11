@@ -128,7 +128,7 @@ function EmptyState(): ReactElement {
     <div className="mt-12 rounded-lg border border-border bg-card">
       <div className="hidden grid-cols-12 gap-4 border-b border-border px-6 py-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground sm:grid">
         <div className="col-span-4">Invoice</div>
-        <div className="col-span-3">Recipient</div>
+        <div className="col-span-3">Buyer</div>
         <div className="col-span-2 text-right">Amount</div>
         <div className="col-span-3 text-right">Status</div>
       </div>
@@ -161,7 +161,7 @@ function InvoicesTable({ invoices }: { invoices: readonly InvoiceListItem[] }): 
       <div className="hidden overflow-hidden rounded-lg border border-border bg-card sm:block">
         <div className="grid grid-cols-12 gap-4 border-b border-border px-6 py-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
           <div className="col-span-3">Invoice</div>
-          <div className="col-span-3">Recipient</div>
+          <div className="col-span-3">Buyer</div>
           <div className="col-span-2 text-right">Amount</div>
           <div className="col-span-2">Status</div>
           <div className="col-span-2 text-right">Created</div>
@@ -217,7 +217,7 @@ function InvoicesTable({ invoices }: { invoices: readonly InvoiceListItem[] }): 
               <dl className="mt-3 flex justify-between gap-4 text-xs">
                 <div>
                   <dt className="uppercase tracking-[0.18em] text-muted-foreground">
-                    Recipient
+                    Buyer
                   </dt>
                   <dd className="mt-0.5 text-foreground">{invoice.recipientHandle ?? '—'}</dd>
                 </div>
