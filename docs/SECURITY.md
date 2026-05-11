@@ -64,4 +64,4 @@ The hackathon build is explicitly pre-audit and devnet-only. The following limit
 - **No rate limiting on the public payer page.** Will be added before any pilot user touches it.
 - **No DDoS protection beyond Cloudflare defaults.** Sufficient for a hackathon demo, not for production.
 
-These limitations are tracked in [ROADMAP.md Phase 8](../ROADMAP.md#phase-8--post-hackathon).
+These limitations are tracked in [ROADMAP.md Phase 8](../main/  ROADMAP.md#phase-8--post-hackathon).
