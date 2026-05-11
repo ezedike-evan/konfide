@@ -25,7 +25,7 @@ A Konfide trade looks like this:
 1. Tunde signs into the Konfide dashboard with his email. Privy provisions a Solana embedded wallet behind the scenes — Tunde never sees a seed phrase.
 2. He creates an invoice in the dashboard for his supplier Wei: $12,000 USDC, due on shipment. He sends Wei the link.
 3. Wei opens the link, accepts the invoice, and his trust score (computed from on-chain history via Covalent GoldRush) appears next to his name on Tunde's screen — silver tier, 600/1000.
-4. Tunde clicks Pay. The hosted KIRAPAY checkout opens. He chooses to pay with USDT on Polygon because that is what is in his wallet. KIRAPAY's solver network routes the funds across to USDC on Solana.
+4. Tunde clicks Pay. The hosted KIRAPAY checkout opens. He chooses to pay with USDT on Polygon because that is what is in his wallet. KIRAPAY's solver network routes funds across any supported source chain and settles as SOL on Solana. Konfide's roadmap includes a Jupiter swap layer for SOL → USDC conversion at receipt; for the hackathon demo, settlement lands as SOL.
 5. The settlement runs through MagicBlock's Private Ephemeral Rollup. Wei is credited in 90 seconds. The Solana mainnet record shows that an invoice was settled — not the amount, not the parties.
 6. Torque attributes a 50 bps rebate because this is Tunde and Wei's fifth trade. The rebate accrues to Tunde's next invoice automatically.
 
@@ -73,7 +73,7 @@ Full architectural detail in [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 | Sponsor    | Integration                                          | Status        | Code location                            |
 | ---------- | ---------------------------------------------------- | ------------- | ---------------------------------------- |
-| KIRAPAY    | Cross-chain checkout, the spine of payer settlement  | Adapter built | `packages/adapters/kirapay/`             |
+| KIRAPAY    | Cross-chain checkout, the spine of payer settlement  | Live          | `packages/adapters/kirapay/`             |
 | MagicBlock | Private Ephemeral Rollup for confidential settlement | Adapter built | `packages/adapters/magicblock/`          |
 | Covalent   | Trust score from cross-chain transaction history     | Adapter built | `packages/adapters/covalent/`            |
 | Torque     | Programmable rebates for repeat counterparty pairs   | Adapter built | `packages/adapters/torque/`              |
@@ -81,7 +81,7 @@ Full architectural detail in [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 Status legend: `Adapter built` = port implementation scaffolded with method stubs; full integration shipping per [ROADMAP.md](../../ROADMAP.md). Live integration deltas at submission time:
 
-- KIRAPAY: end-to-end devnet flow `[TBD: paste status as of submission day]`.
+- KIRAPAY: end-to-end devnet flow live. Create invoice → KIRAPAY hosted checkout → cross-chain payment → SOL settlement on Solana → webhook reconciliation. Verified manually on submission day.
 - MagicBlock: `[TBD]`.
 - Covalent: `[TBD]`.
 - Torque: `[TBD]`.
@@ -114,11 +114,11 @@ Founder profile: Lagos-based, direct access to the Computer Village importer coh
 
 ## Funding ask
 
-$250K via the Colosseum accelerator slot. Twelve-month use of funds:
+$20K via the Colosseum accelerator slot. Twelve-month use of funds:
 
-- 60% engineering ($150K) — two full-time engineers and contractor support for the on-chain audit.
-- 25% GTM and Lagos ground operations ($62.5K) — twenty paid pilot onboardings, Computer Village partnership fees, one Guangzhou trip for supplier-side outreach, customer-success operations.
-- 15% legal and regulatory ($37.5K) — Lagos counsel for CBN classification work, UAE counsel for VARA preparatory work, security audit retainer.
+- 60% engineering ($12K) — two full-time engineers and contractor support for the on-chain audit.
+- 25% GTM and Lagos ground operations ($5K) — twenty paid pilot onboardings, Computer Village partnership fees, one Guangzhou trip for supplier-side outreach, customer-success operations.
+- 15% legal and regulatory ($3K) — Lagos counsel for CBN classification work, UAE counsel for VARA preparatory work, security audit retainer.
 
 Next-round target: $2.5M seed at month 12, contingent on hitting Year 1 milestones (200 active SME pairs, $30M annualised volume, $240K annualised revenue).
 

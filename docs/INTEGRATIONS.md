@@ -22,7 +22,7 @@ KIRAPAY operates an intent-based cross-chain payment network. Merchants generate
 
 ### What we use them for in Konfide
 
-KIRAPAY is the spine of Konfide's payer-side checkout. A buyer in Lagos paying with USDT on Polygon, or in Shenzhen paying with USDT on Tron, or in Dubai paying with USDC on Base, all reach the same Konfide invoice through KIRAPAY's intent layer. KIRAPAY currently supports a single Solana settlement token — native SOL (`chainId: "sol"`, `address: "SOL"`) — so the merchant is paid in SOL on Solana regardless of what the buyer paid. A USDC swap step (Jupiter) is roadmap'd to give the seller a stable-denominated balance; see [ARCHITECTURE.md](./ARCHITECTURE.md#kirapay-flow).
+KIRAPAY is the spine of Konfide's payer-side checkout. A buyer in Lagos paying with USDT on Polygon, or in Shenzhen paying with USDT on Tron, or in Dubai paying with USDC on Base, all reach the same Konfide invoice through KIRAPAY's intent layer. KIRAPAY currently supports a single Solana settlement token — native SOL (`chainId: "sol"`, `address: "SOL"`) — so the merchant is paid in SOL on Solana regardless of what the buyer paid. A USDC swap step (Jupiter) is roadmap'd to give the seller a stable-denominated balance; see [ARCHITECTURE.md](./ARCHITECTURE.md#end-to-end-settlement-flow).
 
 ### Port implemented
 

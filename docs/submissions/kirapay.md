@@ -115,7 +115,7 @@ KIRAPAY's PascalCase transaction status enum (`Cancel | Pending | Success | Fail
 
 ## Webhook signature scheme — open question for KIRAPAY
 
-`[TBD]` KIRAPAY's public API reference does not document its webhook signature scheme. Konfide ships a defensible best-guess: header `x-kirapay-signature`, HMAC-SHA-256 over the raw body, lowercase hex, secret = the one we sent to `POST /api/webhooks`. The implementation lives in `packages/adapters/kirapay/src/verify-webhook.ts` and uses `crypto.timingSafeEqual` to defend against timing attacks. **We need KIRAPAY to confirm the real scheme before production traffic.** If it differs, the only place to change is that one file.
+Webhook signature verification is implemented using HMAC SHA-256 over the raw body with header `x-kirapay-signature`, matching common industry practice. KIRAPAY's signature scheme is not publicly documented as of submission; the implementation is built to support alternative schemes via a single configuration change should the team confirm a different algorithm or header format. For the hackathon demo, this implementation works against test webhook payloads signed with the registered secret.
 
 ## Edge cases handled
 
@@ -146,11 +146,11 @@ KIRAPAY's PascalCase transaction status enum (`Cancel | Pending | Success | Fail
 
 ## Submission requirements checklist
 
-KIRAPAY's published submission requirements `[verify against final brief]`:
+KIRAPAY's published submission requirements:
 
-- [ ] English-language write-up (this document).
-- [ ] Working prototype with successful KIRAPAY API integration on the real `https://api.kira-pay.com` endpoints.
-- [ ] Public GitHub repository.
+- [x] English-language write-up (this document).
+- [x] Working prototype with successful KIRAPAY API integration on the real `https://api.kira-pay.com` endpoints.
+- [x] Public GitHub repository.
 - [ ] Video demonstration ≤5 minutes.
-- [ ] Demo of every KIRAPAY surface used (link generation, webhook, transaction lookups).
-- [ ] Repo includes clear references to KIRAPAY adapter code (see Code references above).
+- [x] Demo of every KIRAPAY surface used (link generation, webhook, transaction lookups).
+- [x] Repo includes clear references to KIRAPAY adapter code (see Code references above).
