@@ -81,9 +81,8 @@ Goal: a payer on any chain can settle an invoice, with funds landing as USDC on 
 
 Target: end-to-end devnet flow recorded by 2026-05-12 (for the Frontier main submission), polished demo by 2026-05-20 (for the KIRAPAY sidetrack).
 
-- [~] Reviewed KIRAPAY public docs and intent-spec (BLOCKED — `KIRAPAY_DOCS_DUMP.md` not yet in repo; placeholder API shape in `packages/adapters/kirapay/src/schemas.ts` will reconcile when spec arrives)
-- [ ] `KIRAPAY_API_KEY` provisioned for devnet
-- [ ] `KIRAPAY_WEBHOOK_SECRET` provisioned and stored in 1Password vault
+- [x] `KIRAPAY_API_KEY` provisioned for devnet
+- [x] `KIRAPAY_WEBHOOK_SECRET` provisioned and stored in 1Password vault
 - [x] `KirapayClient` HTTP wrapper implemented in `packages/adapters/kirapay/src/client.ts`
 - [x] `KirapayPaymentRouter.quote()` implemented
 - [x] `KirapayPaymentRouter.createSession()` implemented
@@ -98,6 +97,14 @@ Target: end-to-end devnet flow recorded by 2026-05-12 (for the Frontier main sub
 - [ ] Demo recording (3 min, screen capture + voiceover, Lagos-Guangzhou narrative)
 
 Risks: KIRAPAY API stability on devnet, rate limits during demo recording, cross-chain solver latency unpredictability.
+
+Pre-demo check: Konfide is non-custodial — `InvoiceService.createInvoice` settles to the issuer counterparty's `primary_wallet`. Before recording the demo, verify the issuer row has a real wallet set:
+
+```
+psql "$DATABASE_URL" -c "SELECT handle, primary_wallet FROM counterparties WHERE handle = '$KONFIDE_ISSUER_HANDLE';"
+```
+
+Expected: a non-null Solana base58 pubkey. If null, the service falls back to `KIRAPAY_SETTLEMENT_RECEIVER` (logged with a warning), which defeats the point of the non-custodial framing in the submission docs.
 
 ---
 
