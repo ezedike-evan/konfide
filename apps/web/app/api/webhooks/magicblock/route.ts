@@ -1,8 +1,3 @@
-/**
- * Magicblock webhook handler.
- *
- * Stub: returns 200 OK and logs the inbound payload.
- */
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request): Promise<NextResponse> {
