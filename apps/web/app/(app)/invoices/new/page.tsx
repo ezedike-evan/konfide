@@ -79,7 +79,7 @@ export default function NewInvoicePage(): ReactElement {
               </div>
             </Field>
 
-            <Field label="Recipient handle">
+            <Field label="Buyer handle">
               <input
                 type="text"
                 value={recipient}
@@ -151,7 +151,7 @@ export default function NewInvoicePage(): ReactElement {
               <div className="mt-6 h-px bg-border" />
 
               <dl className="mt-6 space-y-3 text-sm">
-                <Row label="Recipient" value={recipient || '—'} />
+                <Row label="Buyer" value={recipient || '—'} />
                 <Row label="Description" value={description || '—'} />
                 <Row label="Settles on" value="Solana" />
               </dl>
