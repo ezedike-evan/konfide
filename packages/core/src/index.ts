@@ -8,7 +8,11 @@ export { Money } from './domain/money.js'
 export { Corridor } from './domain/corridor.js'
 export { Invoice } from './domain/invoice.js'
 export { Counterparty } from './domain/counterparty.js'
-export { Settlement } from './domain/settlement.js'
+export {
+  Settlement,
+  SettlementStatus,
+  isTerminalSettlementStatus,
+} from './domain/settlement.js'
 export { tierForScore } from './domain/trust-score.js'
 export type { TrustScoreInputs } from './domain/trust-score.js'
 export {
@@ -29,7 +33,16 @@ export type {
 } from './domain/value-objects.js'
 
 export { InvoiceService } from './services/invoice-service.js'
-export type { InvoiceServiceDeps } from './services/invoice-service.js'
+export type {
+  InvoiceServiceDeps,
+  CreateInvoiceInput,
+  CreateInvoiceResult,
+  MarkSettledInput,
+  MarkPartialInput,
+  MarkFailedInput,
+  MarkRefundedInput,
+  SettlementApplied,
+} from './services/invoice-service.js'
 export { ScoringService } from './services/scoring-service.js'
 export type { ScoringServiceDeps } from './services/scoring-service.js'
 export { SettlementService } from './services/settlement-service.js'
@@ -40,6 +53,9 @@ export {
   NotImplementedError,
   InvalidInvoiceTransitionError,
   CounterpartyNotFoundError,
+  InvoiceNotFoundError,
 } from './errors/index.js'
+
+export { systemClock } from './ports/clock.js'
 
 export type * from './ports/index.js'
