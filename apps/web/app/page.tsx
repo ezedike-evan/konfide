@@ -6,7 +6,7 @@ export default function HomePage(): ReactElement {
   return (
     <main className="bg-background text-foreground">
       <section className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-6 py-24 sm:py-32 lg:py-40">
+        <div className="mx-auto max-w-6xl px-6 py-20">
           <p className="text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
             B2B payments · Solana settlement
           </p>
