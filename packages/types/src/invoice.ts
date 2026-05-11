@@ -18,6 +18,7 @@ export const InvoiceStatusSchema = z.enum([
   'awaiting_payment',
   'partially_paid',
   'settled',
+  'refunded',
   'disputed',
   'voided',
   'expired',
