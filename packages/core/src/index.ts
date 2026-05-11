@@ -54,6 +54,7 @@ export {
   InvalidInvoiceTransitionError,
   CounterpartyNotFoundError,
   InvoiceNotFoundError,
+  MissingSettlementWalletError,
 } from './errors/index.js'
 
 export { systemClock } from './ports/clock.js'

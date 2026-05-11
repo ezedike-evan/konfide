@@ -16,7 +16,7 @@
  */
 import type { Invoice as InvoiceShape, Money, Settlement } from '@konfide/types'
 import { Invoice } from '../domain/invoice.js'
-import { InvoiceNotFoundError } from '../errors/index.js'
+import { InvoiceNotFoundError, MissingSettlementWalletError } from '../errors/index.js'
 import type {
   Clock,
   CounterpartyRepository,
@@ -91,6 +91,14 @@ export interface InvoiceServiceDeps {
   readonly clock: Clock
   readonly idGenerator: IdGenerator
   readonly settlementRecorder?: SettlementRecorder
+  /**
+   * Fallback settlement wallet used only when the issuer counterparty has
+   * no `primaryWallet` set. In production this should be `null`/undefined
+   * so the service refuses to proceed with a default — the non-custodial
+   * invariant. The single-merchant hackathon deployment may set this to
+   * `KIRAPAY_SETTLEMENT_RECEIVER` so first-run flows survive a stale seed.
+   */
+  readonly fallbackSettlementWallet?: string | null
   /** Issued by the API request id; helps logs trace through a webhook. */
   readonly logger?: { info: (msg: string, meta?: unknown) => void; error: (msg: string, meta?: unknown) => void }
 }
@@ -118,6 +126,26 @@ export class InvoiceService {
     if (!issuer) {
       throw new InvoiceNotFoundError(`issuer:${input.issuerHandle}`)
     }
+
+    // Non-custodial: settle to the issuer's own wallet. The env-level
+    // `fallbackSettlementWallet` is a last resort for legacy rows that pre-date
+    // the wallet-required invariant; we warn so the gap is visible in logs.
+    const issuerWallet = issuer.primaryWallet?.trim() || null
+    const fallbackWallet = this.deps.fallbackSettlementWallet?.trim() || null
+    const settlementReceiver = issuerWallet ?? fallbackWallet
+    if (!settlementReceiver) {
+      throw new MissingSettlementWalletError(input.issuerHandle)
+    }
+    if (!issuerWallet) {
+      this.deps.logger?.error(
+        'invoice.create using fallback settlement wallet (issuer has no primary_wallet)',
+        { issuerHandle: input.issuerHandle, fallbackWallet },
+      )
+      console.warn(
+        `[invoice-service] issuer ${input.issuerHandle} has no primary_wallet; falling back to env-configured settlement receiver`,
+      )
+    }
+
     const recipient = input.recipientHandle
       ? await this.deps.counterparties.findByHandle(input.recipientHandle)
       : null
@@ -150,7 +178,9 @@ export class InvoiceService {
 
     const quotes = await this.deps.paymentRouter.quote(invoice, 'any')
     const route = quotes[0]?.route ?? 'default'
-    const session = await this.deps.paymentRouter.createSession(invoice, route)
+    const session = await this.deps.paymentRouter.createSession(invoice, route, {
+      settlementReceiver,
+    })
 
     await this.deps.invoices.attachCheckoutSession(invoice.id, {
       url: session.checkoutUrl,

@@ -8,6 +8,7 @@ export type {
   PaymentRouter,
   PaymentRouteQuote,
   PaymentSession,
+  CreateSessionOptions,
 } from './payment-router.js'
 export type { PrivacyLayer, PrivacySession } from './privacy-layer.js'
 export type { ChainData, CounterpartyHistoryEntry } from './chain-data.js'

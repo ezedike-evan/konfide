@@ -36,6 +36,21 @@ export interface PaymentSession {
   readonly cryptoCurrency?: string
 }
 
+/**
+ * Per-invoice overrides for `createSession`. The service layer resolves the
+ * issuer's wallet and passes it here, so the adapter is not in charge of
+ * deciding where funds land — keeps the platform non-custodial by default.
+ */
+export interface CreateSessionOptions {
+  /**
+   * Wallet that should receive settled funds for this invoice. When set,
+   * overrides any adapter-configured default. The adapter MAY fall back to
+   * its constructor-time `receiverAddress` if this is absent — but in the
+   * Konfide composition root the service always supplies one.
+   */
+  readonly settlementReceiver?: string
+}
+
 export interface PaymentRouter {
   /**
    * Quote available routes for paying a given invoice from a payer wallet.
@@ -51,9 +66,14 @@ export interface PaymentRouter {
    *
    * @param invoice - The invoice being paid.
    * @param route - The route the payer selected.
+   * @param options - Per-invoice overrides (e.g. settlement receiver).
    * @returns The hosted-checkout session.
    */
-  createSession(invoice: Invoice, route: string): Promise<PaymentSession>
+  createSession(
+    invoice: Invoice,
+    route: string,
+    options?: CreateSessionOptions,
+  ): Promise<PaymentSession>
 
   /**
    * Resolve a session into a finalized `Settlement` once the rails report

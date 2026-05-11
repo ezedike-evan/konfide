@@ -43,3 +43,19 @@ export class InvoiceNotFoundError extends KonfideError {
     this.name = 'InvoiceNotFoundError'
   }
 }
+
+/**
+ * Thrown when neither the issuer's `primaryWallet` nor a service-level
+ * fallback wallet is available at invoice-creation time. Konfide is
+ * non-custodial: funds settle to the seller, not to a platform treasury, so
+ * a missing wallet is a configuration error rather than a recoverable state.
+ */
+export class MissingSettlementWalletError extends KonfideError {
+  constructor(issuerHandle: string) {
+    super(
+      'MISSING_SETTLEMENT_WALLET',
+      `Issuer ${issuerHandle} has no primary_wallet and no fallback settlement wallet is configured`,
+    )
+    this.name = 'MissingSettlementWalletError'
+  }
+}
