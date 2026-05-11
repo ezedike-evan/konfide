@@ -1,6 +1,6 @@
 # Konfide × KIRAPAY
 
-This document is the submission for the KIRAPAY sidetrack of the Solana Frontier Hackathon. Its intended reader is a KIRAPAY judge evaluating the depth of integration in five minutes of reading. KIRAPAY weights "Depth of Integration" at 40%, so this document is structured to demonstrate that depth concretely rather than rhetorically.
+This document is the submission for the KIRAPAY sidetrack of the Solana Frontier Hackathon. KIRAPAY weights "Depth of Integration" at 40%, so this document is structured to demonstrate that depth concretely against the real KIRAPAY API (base URL `https://api.kira-pay.com`).
 
 ## Project name
 
@@ -8,114 +8,149 @@ Konfide.
 
 ## One-liner
 
-Confidential B2B payment rails for cross-border trade in emerging markets, with KIRAPAY as the cross-chain spine.
+Confidential B2B payment rails for cross-border trade in emerging markets, with KIRAPAY as the cross-chain spine and SOL-on-Solana as the merchant settlement leg.
 
 ## Problem
 
 Lagos importers pay Shenzhen suppliers in $5K–50K trade-finance amounts, every two to four weeks, year after year. Today they pay 4–7% all-in via correspondent banking, with five-day settlement and Wise accounts that get flagged for compliance review. The crypto alternative — public USDT on Tron — is faster and cheaper but exposes their pricing and customer relationships to anyone watching the explorer. Neither option is acceptable.
 
-The fix requires three properties at once: any-chain-in for the buyer (because Lagos importers do not all hold the same stablecoin on the same chain), USDC-on-Solana out for the seller (because Solana is the only base layer that supports the rest of Konfide's stack), and a 90-second user experience (because anything slower loses to USDT-on-Tron in head-to-head). KIRAPAY is the only product on the market that delivers all three.
+The fix requires three properties at once: any-chain-in for the buyer, Solana-out for the seller (so the rest of the Konfide stack — privacy, trust score, loyalty — has a single base layer to anchor to), and a 90-second user experience. KIRAPAY is the only product on the market that delivers all three. Konfide settles to native SOL today (the only Solana token KIRAPAY currently supports); a Jupiter swap step to USDC is roadmap'd for the next iteration.
 
 ## How KIRAPAY is the spine, not an add-on
 
-This framing matters because it determines what "depth of integration" means for this submission.
+Konfide does not have a fallback to KIRAPAY for the payer-side flow. KIRAPAY is the payer-side flow. The `PaymentRouter` port (`packages/core/src/ports/payment-router.ts`) is the abstraction Konfide's domain talks to for cross-chain checkout. `KirapayPaymentRouter` is the only implementation that ships for the hackathon.
 
-Konfide does not have a fallback to KIRAPAY for the payer-side flow. KIRAPAY is the payer-side flow. Without KIRAPAY's intent layer, Konfide's value proposition collapses to "Solana-only payments for Solana-native buyers," which is the wrong wedge for the Lagos-Guangzhou corridor. The alternative would be building our own cross-chain solver network in three weeks, which is unrealistic, or limiting Konfide to one source chain, which loses 80% of the wedge customer base.
+## Real end-to-end flow
 
-The architecture reflects this. The `PaymentRouter` port (`packages/core/src/ports/payment-router.ts`) is the abstraction Konfide's domain talks to for cross-chain checkout. KIRAPAY is the only implementation that ships for the hackathon. We deliberately did not implement a fallback adapter because adding a second `PaymentRouter` implementation is a six-month decision, not a hackathon-week decision — and the abstraction keeps the door open for that decision later without forcing it now.
-
-## Integration walkthrough
-
-Every KIRAPAY API surface Konfide consumes, with the user-facing flow that triggers it.
+What the user actually does, step by step:
 
 ```mermaid
 sequenceDiagram
-    participant Buyer
+    participant Seller
     participant Web as apps/web
     participant API as apps/api
-    participant Kira as KIRAPAY API
-    participant Solver as KIRAPAY Solver Network
+    participant Kira as KIRAPAY API (api.kira-pay.com)
+    participant Buyer
     participant Solana as Solana L1
-    participant Seller
 
-    Buyer->>Web: open /pay/{invoiceId}
-    Web->>API: GET /invoices/{id}
-    API-->>Web: invoice data
-    Web->>API: POST /invoices/{id}/quotes
-    API->>Kira: POST /v1/quotes {invoice, fromChain}
-    Kira-->>API: quotes[] (route, payAmount, receiveAmount, eta)
-    API-->>Web: quotes[]
-    Buyer->>Web: select route, click Pay
-    Web->>API: POST /invoices/{id}/sessions {route}
-    API->>Kira: POST /v1/sessions {invoice, route}
-    Kira-->>API: session {id, checkoutUrl, expiresAt}
-    API-->>Web: redirect to checkoutUrl
-    Web->>Buyer: redirect
-    Buyer->>Kira: sign + send funds
-    Kira->>Solver: route intent
-    Solver->>Solana: deliver USDC to invoice PDA
-    Kira->>API: POST /webhooks/kirapay {event: payment.confirmed}
-    API->>API: verify HMAC, persist Settlement
-    API->>Web: SSE update
-    Web->>Buyer: show "Settled in 87s"
-    API->>Seller: notify (email + dashboard)
+    Seller->>Web: open /invoices/new, fill amount + recipient
+    Web->>API: POST /invoices { amount: 56, currency: "USD", … }
+    API->>API: persist invoice (status awaiting_payment)
+    API->>Kira: POST /api/link/generate<br/>{ tokenOut: { chainId:"sol", address:"SOL" },<br/>  receiver: <Solana base58>, originalPrice: 56,<br/>  customOrderId: <invoice.id> }
+    Kira-->>API: 201 { data: { url, price: 0.42, originalPrice: 56 } }
+    API-->>Web: { checkoutUrl, fiatAmount: 56, cryptoAmount: 0.42, cryptoCurrency: "SOL" }
+    Web->>Seller: share /pay/<invoice.id>
+
+    Buyer->>Web: open /pay/<invoice.id>
+    Web->>API: GET /invoices/<invoice.id>
+    API-->>Web: { checkoutUrl, "settling 0.42 SOL ≈ $56 USD" }
+    Buyer->>Kira: click "Pay with KIRAPAY", complete checkout
+    Kira->>Solana: route + deliver 0.42 SOL to receiver
+    Kira->>API: POST /webhooks/kirapay<br/>{ event: "transaction.succeeded",<br/>  data: { _id, status:"Success", price, settlementAmount,<br/>          summary: { customOrderId: <invoice.id> } } }
+    API->>API: verify x-kirapay-signature, look up invoice<br/>by data.summary.customOrderId
+    API->>API: InvoiceService.markSettled → DB + on-chain commit
+    Web->>Seller: status pill flips to "settled" (5s poll)
 ```
 
-The KIRAPAY surfaces exercised:
+### Real curl walk-through
 
-- **Quote endpoint** — invoked from `KirapayPaymentRouter.quote()` in `packages/adapters/kirapay/src/kirapay-adapter.ts`. We pass the invoice's USDC-on-Solana destination plus the buyer's source chain. The response is a list of routes ranked by total cost; we expose all of them in the UI rather than only the cheapest, because the buyer often wants visible control.
-- **Session creation endpoint** — invoked from `KirapayPaymentRouter.createSession()` once the buyer has chosen a route. Returns a hosted-checkout URL the buyer is redirected to.
-- **Session resolution endpoint** — invoked from `KirapayPaymentRouter.resolveSession()` as a polling backstop in case a webhook is missed. The webhook is the primary signal; this is the secondary.
-- **Webhooks** — `payment.confirmed`, `payment.failed`, `payment.partial` consumed at `POST /webhooks/kirapay` in `apps/api/src/routes/webhooks.ts`. Every webhook is HMAC SHA-256 verified against `KIRAPAY_WEBHOOK_SECRET`; unsigned webhooks are rejected with 401 before any application logic runs.
+1. **Create the link.**
+   ```
+   curl -X POST https://api.kira-pay.com/api/link/generate \
+     -H "x-api-key: $KIRAPAY_API_KEY" \
+     -H "content-type: application/json" \
+     -d '{
+       "tokenOut": { "chainId": "sol", "address": "SOL" },
+       "receiver": "<konfide service Solana pubkey>",
+       "originalPrice": 56,
+       "fiatCurrency": "USD",
+       "name": "Konfide invoice <uuid>",
+       "customOrderId": "<uuid>",
+       "redirectUrl": "https://konfide.app/pay/<uuid>/return",
+       "type": "single_use",
+       "isViewAsCrypto": false
+     }'
+   ```
+   Returns `{ message:"success", code:201, data:{ url, price, originalPrice } }`.
 
-`[verify against KIRAPAY docs: confirm exact endpoint paths and webhook event names]`.
+2. **Register the webhook (one-time per environment).**
+   ```
+   pnpm kirapay:register-webhook https://api.konfide.app/webhooks/kirapay
+   ```
+   Wraps `POST /api/webhooks { url, secret }` and prints the registered endpoint id back.
+
+3. **Buyer pays.** The hosted URL handles wallet detection, route selection, fund delivery on the source chain, and bridges to Solana. KIRAPAY's solver network handles routing.
+
+4. **Webhook lands.** `POST /webhooks/kirapay` verifies the `x-kirapay-signature` HMAC, dedupes against `webhook_events.id`, looks the invoice up by `data.summary.customOrderId` (or `data.customOrderId`), and dispatches by `event` field.
+
+5. **Optional reconciliation poll.** `KirapayPaymentRouter.resolveSession(sessionId)` calls `GET /api/wallet/transactions?key=<customOrderId>&limit=5`, picks the latest matching transaction, and — only when its status is `Success` — returns a `Settlement` for backfill.
+
+## KIRAPAY surfaces exercised
+
+| Konfide method | KIRAPAY endpoint | What we use it for |
+| --- | --- | --- |
+| `KirapayClient.generatePaymentLink` | `POST /api/link/generate` | Hosted-checkout link for each invoice. We always send `tokenOut: { chainId: "sol", address: "SOL" }`, `type: "single_use"`, `isViewAsCrypto: false`, and `customOrderId` set to the Konfide invoice id. |
+| `KirapayClient.registerWebhook` | `POST /api/webhooks` | One-time webhook registration via `tooling/scripts/register-kirapay-webhook.ts`. |
+| `KirapayClient.getTransaction` | `GET /api/wallet/transactions/{id}` | Forensics. Reads the full transaction including `data.summary.customOrderId` for cross-reference. |
+| `KirapayClient.getTransactionByHash` | `GET /api/wallet/transactions/status/{hash}` | Lightweight status probe when we only hold a source-chain hash. |
+| `KirapayClient.listTransactions` | `GET /api/wallet/transactions?key=<customOrderId>` | Polling fallback for missed webhooks. The `key` query param is KIRAPAY's free-text search (which matches `customOrderId` among other fields); we exact-match in our own code. |
+
+`KirapayPaymentRouter.quote` does **not** call KIRAPAY — KIRAPAY does not expose a quote API. We return a static estimate built from Konfide's 25-bp protocol fee plus a placeholder routing-fee constant; replaceable once we have live telemetry.
+
+## The `customOrderId` reconciliation pattern
+
+This is the technical detail that makes the integration work in practice.
+
+KIRAPAY's response to `POST /api/link/generate` returns only `{ url, price, originalPrice }` — no transaction id, no echoed `customOrderId`, no expiry. There is no KIRAPAY-side handle for the link that we hold at creation time. The only handle is the one we control: the `customOrderId` we sent in (Konfide's invoice id).
+
+Consequences:
+
+- **Webhook reconciliation.** The webhook payload echoes `customOrderId` (we read it from `data.customOrderId` or `data.summary.customOrderId`); we resolve the invoice via `findByCustomOrderId(customOrderId)`. Without this echo we could not attribute the webhook to a local invoice.
+- **Polling reconciliation.** `GET /api/wallet/transactions?key=<customOrderId>` is the only way to find KIRAPAY's view of our invoice. We then narrow by exact-match in our own code because `key` is a free-text search.
+- **Schema enforcement.** `invoices.custom_order_id` is uniquely indexed. A second `POST /api/link/generate` for the same invoice id would fail at the DB layer before reaching KIRAPAY.
+
+## Status mapping
+
+KIRAPAY's PascalCase transaction status enum (`Cancel | Pending | Success | Failed | Refunded | Refunding | RefundedByRelay`) maps 1:1 onto Konfide's `SettlementStatus` (`packages/core/src/domain/settlement.ts`). The invoice state machine (`packages/core/src/domain/invoice.ts`) folds it down to: `awaiting_payment` → `settled` on `Success`, `settled` → `refunded` on either refund flavour, with `disputed` reserved as a manual-reconciliation escape hatch.
+
+## Webhook signature scheme — open question for KIRAPAY
+
+`[TBD]` KIRAPAY's public API reference does not document its webhook signature scheme. Konfide ships a defensible best-guess: header `x-kirapay-signature`, HMAC-SHA-256 over the raw body, lowercase hex, secret = the one we sent to `POST /api/webhooks`. The implementation lives in `packages/adapters/kirapay/src/verify-webhook.ts` and uses `crypto.timingSafeEqual` to defend against timing attacks. **We need KIRAPAY to confirm the real scheme before production traffic.** If it differs, the only place to change is that one file.
 
 ## Edge cases handled
 
-These are the cases that distinguish a real integration from a demo path.
-
-**Wallet detection.** When the buyer connects, KIRAPAY's checkout auto-detects the source chain from the connected wallet. We surface this back into the Konfide UI so the quote refreshes if the buyer switches networks mid-flow. `[verify: confirm KIRAPAY's wallet-detection API surface]`.
-
-**Payment timeout retries.** If the buyer signs but the source chain is slow (Polygon during congestion, for example), the session can age out before the funds arrive. We poll the resolution endpoint at 5s, 15s, 60s before surfacing a "still processing — check back" state. The buyer's funds are not stuck — KIRAPAY's solver network handles delivery — but the UI should not lie about latency.
-
-**Partial settlements.** A `payment.partial` webhook event maps to invoice status `partially_paid`. The seller's dashboard shows the partial amount and the remaining balance; the buyer's payer page invites them to complete the remainder.
-
-**Multi-token routing fallbacks.** If the buyer's preferred token is unavailable on their source chain (e.g. they have USDT-on-BSC but want to pay in USDC), the quote endpoint returns routes through whatever stablecoin is liquid on that chain. The Konfide UI shows the FX implication transparently.
-
-**Webhook replay.** Idempotency is keyed on `(sessionId, eventType, eventTimestamp)`. A duplicate webhook (e.g. retry from KIRAPAY's side after our 5xx) is acknowledged but does not double-credit.
-
-**Session expiry mid-flow.** If a buyer abandons checkout and returns 30 minutes later, the session may have expired. The Konfide UI detects this from the session-resolution response and offers to reissue.
+- **Replayed webhook deliveries** — idempotency table `webhook_events` keyed on KIRAPAY's event id; duplicates return 200 without re-applying.
+- **Signature tampering** — body bytes are read with `c.req.text()` before any JSON parsing; HMAC verified against the unparsed bytes; failure → 401, no body.
+- **Unknown invoice** — webhook arrives but `findByCustomOrderId` returns null (e.g. race between link creation and webhook). Event is recorded for forensics, response is 200 with `ignored` reason.
+- **Refund flavours** — both `Refunded` and `RefundedByRelay` map to the same terminal `refunded` invoice state; the `refundKind` is logged for downstream reconciliation but does not affect the protocol.
+- **Failed payments** — invoice stays in `awaiting_payment` so the payer can retry within the session expiry window.
+- **On-chain hiccups** — DB write is the source of truth; on-chain `settle_invoice` failures are logged but do not roll back the DB commit.
 
 ## What we would build deeper given more time
 
-Three integrations we explicitly want but cannot ship in three weeks:
-
-- **Subscription invoices.** Recurring monthly trade between the same Tunde-Wei pair. KIRAPAY's session model is per-trade today; subscription would require either KIRAPAY-side primitives or a Konfide-side scheduler that creates fresh sessions on a cadence.
-- **Multi-leg settlement.** Trades that route across three or more chains because the buyer holds funds split across multiple wallets. KIRAPAY's solver network may already support this `[verify]`; Konfide's UI does not yet.
-- **Bulk invoice issuance.** A Lagos importer creating 30 invoices to 30 suppliers at once, all settled through KIRAPAY in a single hosted checkout session.
+- **Jupiter swap leg.** SOL → USDC on settlement so the merchant gets a stable-denominated balance without manual swap. KIRAPAY's current Solana support is SOL-only.
+- **Subscription invoices.** Recurring monthly trade between the same Tunde-Wei pair via repeated `single_use` links scheduled by a Konfide-side cron.
+- **Bulk invoice issuance.** A Lagos importer creating 30 invoices to 30 suppliers at once, each minted via one `POST /api/link/generate` call.
 
 ## Code references
 
 - Port: `packages/core/src/ports/payment-router.ts`
-- Adapter: `packages/adapters/kirapay/src/kirapay-adapter.ts`
-- HTTP client wrapper: `packages/adapters/kirapay/src/client.ts`
+- HTTP client: `packages/adapters/kirapay/src/client.ts`
+- Strict response schemas: `packages/adapters/kirapay/src/schemas.ts`
+- Payment-router adapter: `packages/adapters/kirapay/src/kirapay-payment-router.ts`
+- Webhook verifier: `packages/adapters/kirapay/src/verify-webhook.ts`
 - Webhook receiver: `apps/api/src/routes/webhooks.ts` (`POST /webhooks/kirapay`)
+- Invoice routes: `apps/api/src/routes/invoices.ts`
+- Webhook registration script: `tooling/scripts/register-kirapay-webhook.ts`
 - Public payer page: `apps/web/app/pay/[invoiceId]/page.tsx`
-- Webhook receiver (web app variant for the demo): `apps/web/app/api/webhooks/kirapay/route.ts`
-
-## Demo
-
-- **Video** — `[TBD: 3-minute demo showing Lagos buyer paying with USDT-on-Polygon, settled in USDC-on-Solana through KIRAPAY]`.
-- **Live demo** — `[TBD: stable URL on devnet]`.
-- **GitHub** — `[TBD]`.
 
 ## Submission requirements checklist
 
 KIRAPAY's published submission requirements `[verify against final brief]`:
 
 - [ ] English-language write-up (this document).
-- [ ] Working prototype with successful KIRAPAY API integration on devnet.
+- [ ] Working prototype with successful KIRAPAY API integration on the real `https://api.kira-pay.com` endpoints.
 - [ ] Public GitHub repository.
 - [ ] Video demonstration ≤5 minutes.
-- [ ] Demo of every KIRAPAY surface used (quotes, sessions, webhooks).
+- [ ] Demo of every KIRAPAY surface used (link generation, webhook, transaction lookups).
 - [ ] Repo includes clear references to KIRAPAY adapter code (see Code references above).

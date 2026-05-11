@@ -18,11 +18,11 @@ Each section follows the same template so a judge can compare across sponsors wi
 
 ### What they do
 
-KIRAPAY operates an intent-based cross-chain payment network. Users express what they want to receive (currency, amount, chain) and KIRAPAY's solver network competes to fulfil the intent at the best price. Settlement on Solana is the destination; the source can be any major chain the network supports.
+KIRAPAY operates an intent-based cross-chain payment network. Merchants generate a hosted payment link and tell KIRAPAY which settlement chain + token they want to receive on; payers can then settle from any major chain KIRAPAY supports.
 
 ### What we use them for in Konfide
 
-KIRAPAY is the spine of Konfide's payer-side checkout. A buyer in Lagos paying with USDT on Polygon, or in Shenzhen paying with USDT on Tron, or in Dubai paying with USDC on Base, all reach the same Konfide invoice through KIRAPAY's intent layer. The seller is paid in USDC on Solana regardless of what the buyer paid. Without KIRAPAY we would have to either build our own cross-chain solver (unrealistic in the hackathon window) or limit Konfide to Solana-native payers (which is the wrong wedge).
+KIRAPAY is the spine of Konfide's payer-side checkout. A buyer in Lagos paying with USDT on Polygon, or in Shenzhen paying with USDT on Tron, or in Dubai paying with USDC on Base, all reach the same Konfide invoice through KIRAPAY's intent layer. KIRAPAY currently supports a single Solana settlement token — native SOL (`chainId: "sol"`, `address: "SOL"`) — so the merchant is paid in SOL on Solana regardless of what the buyer paid. A USDC swap step (Jupiter) is roadmap'd to give the seller a stable-denominated balance; see [ARCHITECTURE.md](./ARCHITECTURE.md#kirapay-flow).
 
 ### Port implemented
 
@@ -30,41 +30,74 @@ KIRAPAY is the spine of Konfide's payer-side checkout. A buyer in Lagos paying w
 
 ### Adapter location
 
-`packages/adapters/kirapay/`. Specifically `src/client.ts` for the HTTP wrapper and `src/kirapay-adapter.ts` for the port implementation.
+`packages/adapters/kirapay/`:
+- `src/client.ts` — `KirapayClient` HTTP wrapper (Node `fetch`, `x-api-key` auth, Zod-typed responses).
+- `src/schemas.ts` — strict Zod schemas for every real KIRAPAY response.
+- `src/kirapay-payment-router.ts` — `KirapayPaymentRouter` implementing the `PaymentRouter` port.
+- `src/verify-webhook.ts` — pure-function HMAC verifier with discriminated-union result.
 
-### Key SDK methods used
+### Endpoints used (real KIRAPAY API)
 
-- `quote(invoice, fromChain)` — query the solver network for available routes from a given chain, returning amount, fees, and estimated finality time per route.
-- `createSession(invoice, route)` — open a hosted-checkout session for the buyer; returns a URL the buyer is redirected to.
-- `resolveSession(sessionId)` — read the final state of a session once funds have arrived; used as a backstop for when a webhook is missed.
-- `verifyWebhook(payload, signature, secret)` — HMAC SHA-256 verification on inbound webhooks `payment.confirmed`, `payment.failed`, `payment.partial`.
+Base URL `https://api.kira-pay.com`. Auth header `x-api-key: <KIRAPAY_API_KEY>` on every authed endpoint.
 
-`[verify against KIRAPAY docs]` — exact endpoint names and signature scheme to be confirmed once integration begins.
+- `POST /api/link/generate` — body `{ tokenOut: { chainId, address }, receiver, originalPrice, fiatCurrency, name, customOrderId, redirectUrl, type, isViewAsCrypto, cryptoCurrency? }` → `{ message, code: 201, data: { url, price, originalPrice } }`. Konfide sends `tokenOut: { chainId: "sol", address: "SOL" }`, the merchant's Solana base58 receiver, the fiat amount as `originalPrice`, and **the Konfide invoice id as `customOrderId`** — this is the only reconciliation key between our DB and a KIRAPAY transaction.
+- `POST /api/webhooks` — body `{ url, secret }` → `{ message, code, data: { _id, key, isActive, webhookEndpoint: { _id, url, secret, createdAt, updatedAt } } }`. We generate the secret (>=6 chars) and KIRAPAY stores it verbatim.
+- `GET /api/wallet/transactions/{id}` → full transaction detail; `data.summary.customOrderId` is the link back to our invoice.
+- `GET /api/wallet/transactions/status/{hash}` → compact `{ data: { status } }`.
+- `GET /api/wallet/transactions` — filterable list. We filter by `customOrderId` via the free-text `key` query param (KIRAPAY does not expose a dedicated `customOrderId` filter; `key` matches tx id / hash / customOrderId / requestId / paymentLinkId / sender / recipient).
+
+### Webhook events handled
+
+KIRAPAY emits the following events per the rewrite spec:
+
+- `transaction.created` → no-op (the invoice is already in `awaiting_payment` from creation; we still record the event id in `webhook_events` for idempotency).
+- `transaction.succeeded` → `InvoiceService.markSettled` → DB settlement row + on-chain `settle_invoice`.
+- `transaction.refund` → `InvoiceService.markRefunded` → invoice transitions to terminal `refunded`. Both `Refunded` and `RefundedByRelay` underlying statuses are handled.
+
+KIRAPAY's transaction status enum is PascalCase: `Cancel | Pending | Success | Failed | Refunded | Refunding | RefundedByRelay`. `SettlementStatus` in core mirrors this 1:1.
+
+### Webhook signature scheme
+
+`[TBD — UNDOCUMENTED]` As of this rewrite KIRAPAY has not published its webhook signature scheme. The adapter implements a defensible best-guess:
+
+- Header: `x-kirapay-signature`.
+- Algorithm: `HMAC-SHA-256` over the raw request body bytes.
+- Encoding: lowercase hex.
+- Secret: the one we sent on `POST /api/webhooks` (stored as `KIRAPAY_WEBHOOK_SECRET`).
+- No timestamp / replay tolerance — the docs do not surface one. The function exposes a `nowEpochSeconds` hook so a timestamped scheme can be added without changing callers.
+
+**Confirm with KIRAPAY before production use.** If the real scheme differs, the only place to change is `src/verify-webhook.ts`.
 
 ### Setup
 
 Required env vars:
 
 - `KIRAPAY_API_KEY` — server-side API key from the KIRAPAY dashboard.
-- `KIRAPAY_WEBHOOK_SECRET` — HMAC secret used to verify inbound webhooks.
+- `KIRAPAY_BASE_URL` — optional override (defaults to `https://api.kira-pay.com`).
+- `KIRAPAY_WEBHOOK_SECRET` — HMAC secret we generate; sent on `POST /api/webhooks`.
+- `KIRAPAY_SETTLEMENT_CHAIN_ID` — defaults to `sol`.
+- `KIRAPAY_SETTLEMENT_TOKEN_ADDRESS` — defaults to `SOL`.
+- `KIRAPAY_SETTLEMENT_RECEIVER` — Solana base58 pubkey for the Konfide service keypair.
+- `APP_BASE_URL` — e.g. `http://localhost:3000`; used to build the KIRAPAY `redirectUrl`.
 
-Provisioning: register a project in the KIRAPAY dashboard, generate a devnet key, configure webhook URL `https://<api-host>/webhooks/kirapay`, store secrets in deployment env.
+Provisioning: request a KIRAPAY API key, generate the webhook secret (>=6 chars), run `pnpm kirapay:register-webhook https://<api-host>/webhooks/kirapay`, store secrets in deployment env.
 
 ### Integration depth
 
-Currently `[~]` — adapter package scaffolded with `KirapayPaymentRouter` implementing `PaymentRouter`. All methods throw `NotImplementedError`. Real implementation is Phase 2 in the roadmap, targeting end-to-end devnet by 2026-05-12.
+`[●]` — Adapter, payment-router port, signature verification (best-guess scheme), API routes (`POST /invoices`, `GET /invoices/:publicId`, `POST /webhooks/kirapay`), and seller/payer pages are all wired against the real KIRAPAY API. Webhook idempotency is enforced via the `webhook_events` table keyed on KIRAPAY's event id. Two TBDs remain pending KIRAPAY clarification: the signature scheme (documented above) and the webhook event payload shape (the `WebhookEventSchema` in `schemas.ts` is `passthrough()` and tolerates unknown fields, but the field locations the dispatcher reads (`data.customOrderId`, `data.summary.customOrderId`, `data._id`, etc.) need confirmation).
 
 ### Where it shows up in the demo
 
-The public payer page at `/pay/[invoiceId]`. The buyer clicks a CTA that opens the KIRAPAY hosted checkout, signs on their source chain, and the page polls for a confirmed settlement.
+The public payer page at `/pay/[invoiceId]` reads `checkoutUrl` from `GET /invoices/:publicId` and links the buyer to KIRAPAY's hosted checkout. The page also surfaces "settling X SOL ≈ $Y USD" using the `cryptoAmount` and `fiatAmount` returned at link creation. After confirmation, the seller's view at `/invoices/[publicId]` polls every 5 seconds and flips the status pill from `awaiting payment` to `settled`, surfacing the on-chain TX signature with a Solana Explorer link.
 
 ### Edge cases handled
 
-- Wallet detection: `[verify with KIRAPAY: chain auto-detection from connected wallet]`.
-- Payment timeout retries: backoff to 5s, 15s, 60s.
-- Partial settlements: `payment.partial` webhook event mapped to invoice status `partially_paid`.
-- Multi-token routing: if the preferred token is unavailable on the source chain, fall back to USDC.
-- Webhook replay: idempotency keyed on `(sessionId, eventType, eventTimestamp)`.
+- **Replayed webhook deliveries** — idempotency table `webhook_events` keyed on the upstream event id; duplicates return 200 without re-applying.
+- **Signature tampering** — body bytes are read before any JSON parsing; HMAC verified against the unparsed bytes; failure → 401, no body.
+- **Cross-reconciliation** — webhook handler looks the invoice up by `customOrderId`; events with no matching local invoice are recorded but ignored (200 with `ignored` reason).
+- **Refund handling** — `transaction.refund` maps to a terminal `refunded` invoice state regardless of whether KIRAPAY reports `Refunded` or `RefundedByRelay`.
+- **Failed payments** — invoice stays in `awaiting_payment`; the payer can retry within the session expiry window.
+- **On-chain hiccups** — DB write is the source of truth; on-chain `settle_invoice` failures are logged but do not roll back the DB commit.
 
 ### Sponsor's judging criteria
 

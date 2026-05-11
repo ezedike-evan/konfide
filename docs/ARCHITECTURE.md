@@ -43,7 +43,7 @@ flowchart LR
     Web -->|"create / query"| API
     Web -->|"auth"| Privy
     API -->|"quote / session"| Kira
-    Kira -->|"USDC on Solana"| Solana
+    Kira -->|"SOL on Solana<br/>(USDC swap via Jupiter — roadmap)"| Solana
     Solana -->|"PER session"| Magic
     Magic -->|"commitment"| Solana
     API -->|"events"| Torque
@@ -175,23 +175,21 @@ sequenceDiagram
     participant Indexer as apps/indexer
     participant Seller
 
+    Seller->>API: POST /invoices { amount, currency: "USD", … }
+    API->>Kira: POST /api/link/generate<br/>(tokenOut sol/SOL, customOrderId = invoice.id)
+    Kira-->>API: { url, price (SOL), originalPrice (USD) }
+    API-->>Seller: { checkoutUrl, fiatAmount, cryptoAmount: <SOL> }
     Buyer->>Web: open /pay/{invoiceId}
     Web->>API: GET /invoices/{id}
-    API-->>Web: invoice + payable amount
-    Buyer->>Web: click "Pay with USDT on Polygon"
-    Web->>API: POST /invoices/{id}/sessions {route}
-    API->>Kira: createSession(invoice, route)
-    Kira-->>API: hosted-checkout URL
-    API-->>Web: redirect URL
-    Web->>Buyer: redirect
-    Buyer->>Kira: sign + send funds
-    Kira->>Solver: route intent
-    Solver->>Program: settle_invoice CPI from solver authority
+    API-->>Web: invoice + "settling X SOL ≈ $Y USD"
+    Buyer->>Kira: click "Pay with KIRAPAY", complete hosted checkout
+    Kira->>Solver: route intent (cross-chain)
+    Solver->>Program: deliver SOL to receiver, settle_invoice CPI
     Program->>PER: open shielded settlement session
     PER-->>Program: commitment hash
     Program-->>Solver: tx confirmed
-    Kira->>API: POST /webhooks/kirapay {payment.confirmed}
-    API->>API: verify HMAC, persist Settlement row
+    Kira->>API: POST /webhooks/kirapay<br/>{ event: "transaction.succeeded",<br/>  data.summary.customOrderId: invoice.id }
+    API->>API: verify x-kirapay-signature,<br/>findByCustomOrderId → markSettled
     API->>Indexer: emit invoice.settled domain event
     Indexer->>Seller: notify (email + dashboard)
 ```
