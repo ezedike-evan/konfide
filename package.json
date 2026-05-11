@@ -17,11 +17,15 @@
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "format": "biome format --write .",
-    "check": "turbo run lint typecheck test"
+    "check": "turbo run lint typecheck test",
+    "e2e:kirapay": "tsx tooling/scripts/e2e-kirapay.ts",
+    "kirapay:register-webhook": "tsx tooling/scripts/register-kirapay-webhook.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
+    "@konfide/adapter-kirapay": "workspace:^",
     "@types/node": "^22.19.18",
+    "tsx": "^4.21.0",
     "turbo": "^2.9.12",
     "typescript": "^5.9.3"
   },
