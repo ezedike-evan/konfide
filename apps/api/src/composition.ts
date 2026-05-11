@@ -83,12 +83,16 @@ export function getAppContext(): AppContext {
     apiKey: env.KIRAPAY_API_KEY,
     ...(env.KIRAPAY_BASE_URL ? { baseUrl: env.KIRAPAY_BASE_URL } : {}),
   })
+  // Note: `receiverAddress` is intentionally NOT passed here. Konfide is
+  // non-custodial — `InvoiceService` resolves the settlement receiver from
+  // the issuer counterparty's `primaryWallet` per invoice and forwards it via
+  // `createSession({ settlementReceiver })`. The env value is supplied to the
+  // service as a fallback for legacy rows, not to the adapter.
   const paymentRouter = new KirapayPaymentRouter({
     client: kirapayClient,
     settlement: {
       chainId: env.KIRAPAY_SETTLEMENT_CHAIN_ID,
       tokenAddress: env.KIRAPAY_SETTLEMENT_TOKEN_ADDRESS,
-      receiverAddress: env.KIRAPAY_SETTLEMENT_RECEIVER,
       fiatCurrency: 'USD',
       ...(env.APP_BASE_URL ? { appBaseUrl: env.APP_BASE_URL } : {}),
     },
@@ -110,6 +114,7 @@ export function getAppContext(): AppContext {
     counterparties,
     clock,
     idGenerator,
+    fallbackSettlementWallet: env.KIRAPAY_SETTLEMENT_RECEIVER,
     ...(settlementRecorder ? { settlementRecorder } : {}),
     logger: {
       info: (msg, meta) => console.log(`[invoice-service] ${msg}`, meta ?? {}),
