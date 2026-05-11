@@ -86,6 +86,10 @@ Provisioning: request a KIRAPAY API key, generate the webhook secret (>=6 chars)
 
 `[●]` — Adapter, payment-router port, signature verification (best-guess scheme), API routes (`POST /invoices`, `GET /invoices/:publicId`, `POST /webhooks/kirapay`), and seller/payer pages are all wired against the real KIRAPAY API. Webhook idempotency is enforced via the `webhook_events` table keyed on KIRAPAY's event id. Two TBDs remain pending KIRAPAY clarification: the signature scheme (documented above) and the webhook event payload shape (the `WebhookEventSchema` in `schemas.ts` is `passthrough()` and tolerates unknown fields, but the field locations the dispatcher reads (`data.customOrderId`, `data.summary.customOrderId`, `data._id`, etc.) need confirmation).
 
+### Settlement custody model
+
+Konfide is non-custodial. Each seller's invoice settles directly to the seller's Solana wallet, not to a Konfide-controlled treasury. The per-invoice `receiver` we send to KIRAPAY's `POST /api/link/generate` is the issuer counterparty's `primary_wallet`, resolved at invoice-creation time inside `InvoiceService.createInvoice` and forwarded to the adapter via `PaymentRouter.createSession({ settlementReceiver })`. For the hackathon demo, the platform runs as a single-merchant deployment; multi-tenant seller onboarding (with self-service wallet registration) is on the post-hackathon roadmap. The `KIRAPAY_SETTLEMENT_RECEIVER` env var is retained only as a last-resort fallback for issuers with no `primary_wallet` on record — and the service emits a warning whenever it is used.
+
 ### Where it shows up in the demo
 
 The public payer page at `/pay/[invoiceId]` reads `checkoutUrl` from `GET /invoices/:publicId` and links the buyer to KIRAPAY's hosted checkout. The page also surfaces "settling X SOL ≈ $Y USD" using the `cryptoAmount` and `fiatAmount` returned at link creation. After confirmation, the seller's view at `/invoices/[publicId]` polls every 5 seconds and flips the status pill from `awaiting payment` to `settled`, surfacing the on-chain TX signature with a Solana Explorer link.
