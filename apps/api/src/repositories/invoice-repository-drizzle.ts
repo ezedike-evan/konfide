@@ -3,7 +3,7 @@
   InvoiceRepository,
 } from '@konfide/core/ports'
 import type { Invoice, InvoiceStatus } from '@konfide/types'
-import { eq } from 'drizzle-orm'
+import { desc, eq } from 'drizzle-orm'
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import * as schema from '../db/schema.js'
 
@@ -60,6 +60,17 @@ export class InvoiceRepositoryDrizzle implements InvoiceRepository {
 
   async findByPublicId(publicId: string): Promise<Invoice | null> {
     return this.findById(publicId)
+  }
+
+  async listByIssuer(issuerId: string, limit?: number): Promise<Invoice[]> {
+    const clamped = Math.min(Math.max(1, Math.floor(limit ?? 50)), 200)
+    const rows = await this.db
+      .select()
+      .from(schema.invoices)
+      .where(eq(schema.invoices.issuerId, issuerId))
+      .orderBy(desc(schema.invoices.createdAt))
+      .limit(clamped)
+    return rows.map((row) => this.toDomain(row))
   }
 
   /**

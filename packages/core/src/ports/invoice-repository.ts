@@ -44,6 +44,14 @@ export interface InvoiceRepository {
   findByCustomOrderId(customOrderId: string): Promise<Invoice | null>
 
   /**
+   * List invoices issued by a specific counterparty, most recent first.
+   *
+   * @param issuerId - The internal id of the issuer counterparty.
+   * @param limit - Max rows to return (default 50, clamped to [1, 200]).
+   */
+  listByIssuer(issuerId: string, limit?: number): Promise<Invoice[]>
+
+  /**
    * Update the status of an existing invoice. Caller is responsible for
    * ensuring the transition is legal (the `Invoice` aggregate enforces this
    * before calling).

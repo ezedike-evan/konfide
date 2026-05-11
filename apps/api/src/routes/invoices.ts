@@ -73,6 +73,65 @@ invoicesRoute.post('/', async (c) => {
   }
 })
 
+const ListInvoicesQuery = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+  })
+  .strict()
+
+invoicesRoute.get('/', async (c) => {
+  const parsed = ListInvoicesQuery.safeParse(Object.fromEntries(new URL(c.req.url).searchParams))
+  if (!parsed.success) {
+    return c.json(
+      {
+        code: 'invalid_request',
+        message: 'query did not match schema',
+        details: parsed.error.flatten(),
+      },
+      400,
+    )
+  }
+  const ctx = getAppContext()
+  try {
+    const issuer = await ctx.counterparties.findByHandle(ctx.env.KONFIDE_ISSUER_HANDLE)
+    if (!issuer) {
+      return c.json({ code: 'not_found', message: 'issuer counterparty not found' }, 404)
+    }
+    const invoices = await ctx.invoices.listByIssuer(issuer.id, parsed.data.limit)
+
+    const handleCache = new Map<string, string | null>()
+    async function recipientHandle(payerId: string | null): Promise<string | null> {
+      if (!payerId) return null
+      const cached = handleCache.get(payerId)
+      if (cached !== undefined) return cached
+      const cp = await ctx.counterparties.findById(payerId)
+      const handle = cp?.handle ?? null
+      handleCache.set(payerId, handle)
+      return handle
+    }
+
+    const summaries = await Promise.all(
+      invoices.map(async (invoice) => ({
+        publicId: invoice.id,
+        status: invoice.status,
+        fiatAmount: Number(invoice.total.amount) / 1_000_000,
+        fiatCurrency: invoice.total.currency,
+        cryptoAmount: null,
+        cryptoCurrency: null,
+        recipientHandle: await recipientHandle(invoice.payerId),
+        description: invoice.memo,
+        createdAt: invoice.createdAt,
+        expiresAt: invoice.dueAt,
+      })),
+    )
+
+    return c.json(summaries)
+  } catch (err) {
+    console.error('[invoices.list] unexpected error', err)
+    return c.json({ code: 'internal_error', message: 'failed to list invoices' }, 500)
+  }
+})
+
 invoicesRoute.get('/:publicId', async (c) => {
   const publicId = c.req.param('publicId')
   const ctx = getAppContext()

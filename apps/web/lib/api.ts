@@ -64,6 +64,23 @@ const InvoiceDetailResponse = z.object({
 
 export type InvoiceDetailResponse = z.infer<typeof InvoiceDetailResponse>
 
+const InvoiceListItem = z.object({
+  publicId: z.string(),
+  status: InvoiceStatusSchema,
+  fiatAmount: z.number(),
+  fiatCurrency: z.string(),
+  cryptoAmount: z.number().nullable(),
+  cryptoCurrency: z.string().nullable(),
+  recipientHandle: z.string().nullable(),
+  description: z.string().nullable(),
+  createdAt: z.string(),
+  expiresAt: z.string().nullable(),
+})
+
+const InvoiceListResponse = z.array(InvoiceListItem)
+
+export type InvoiceListItem = z.infer<typeof InvoiceListItem>
+
 export interface CreateInvoiceInput {
   amount: number
   currency: string
@@ -88,6 +105,20 @@ export async function createInvoice(
     throw new ApiError(res.status, parseError(text))
   }
   return CreateInvoiceResponse.parse(JSON.parse(text))
+}
+
+export async function listInvoices(
+  init?: RequestInit & { limit?: number },
+): Promise<InvoiceListItem[]> {
+  const url = new URL(`${apiBase()}/invoices`)
+  if (init?.limit !== undefined) url.searchParams.set('limit', String(init.limit))
+  const { limit: _unused, ...fetchInit } = init ?? {}
+  const res = await fetch(url, fetchInit)
+  const text = await res.text()
+  if (!res.ok) {
+    throw new ApiError(res.status, parseError(text))
+  }
+  return InvoiceListResponse.parse(JSON.parse(text))
 }
 
 export async function getInvoice(

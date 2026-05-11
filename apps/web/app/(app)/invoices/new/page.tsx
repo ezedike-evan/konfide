@@ -33,6 +33,7 @@ export default function NewInvoicePage(): ReactElement {
         throw new Error(body?.message ?? `request failed (${res.status})`)
       }
       const data = await res.json()
+      router.refresh()
       router.push(`/invoices/${data.publicId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'something went wrong')
