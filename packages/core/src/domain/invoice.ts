@@ -9,12 +9,21 @@
 import type { Invoice as InvoiceShape, InvoiceStatus } from '@konfide/types'
 import { InvalidInvoiceTransitionError } from '../errors/index.js'
 
+/**
+ * Forward-only invoice transitions.
+ *
+ * KIRAPAY drives the awaiting_payment → settled (or expired/voided) transition
+ * via webhooks. Once settled, a refund webhook can move the invoice to
+ * `refunded` (terminal). `disputed` is kept as an off-rail escape hatch the
+ * operator can land on for manual reconciliation.
+ */
 const ALLOWED_TRANSITIONS: Record<InvoiceStatus, readonly InvoiceStatus[]> = {
   draft: ['issued', 'voided'],
   issued: ['awaiting_payment', 'voided', 'expired'],
   awaiting_payment: ['partially_paid', 'settled', 'disputed', 'voided', 'expired'],
   partially_paid: ['settled', 'disputed', 'expired'],
-  settled: ['disputed'],
+  settled: ['refunded', 'disputed'],
+  refunded: [],
   disputed: ['settled', 'voided'],
   voided: [],
   expired: [],
