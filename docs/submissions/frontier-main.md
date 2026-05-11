@@ -67,6 +67,8 @@ Konfide is built on hexagonal (ports + adapters) architecture. The pure domain (
 
 Privacy follows a three-layer model: amounts and counterparties are private (via MagicBlock PER), the fact-of-settlement is public (on Solana mainnet for regulatory auditability), and view keys allow selective disclosure to regulators on appropriate process. This is different from both the Tron USDT model (everything public) and a fully shielded model (no audit path).
 
+Konfide is non-custodial. Each seller's invoice settles directly to the seller's Solana wallet, not to a Konfide-controlled treasury. For the hackathon demo, the platform runs as a single-merchant deployment; multi-tenant seller onboarding (with self-service wallet registration) is on the post-hackathon roadmap.
+
 Full architectural detail in [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## Sponsor integrations
